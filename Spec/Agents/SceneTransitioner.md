@@ -78,7 +78,7 @@
 
 ## 추천 LLM 모델
 
-- **모델**: Claude 3.5 Sonnet, GPT-4
+- **모델**: Grok 4.1 Fast
 - **Temperature**: 0.8
 - **Max Tokens**: 2000
 - **이유**: 맥락 분석, 자연스러운 전환

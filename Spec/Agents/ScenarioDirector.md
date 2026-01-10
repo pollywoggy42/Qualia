@@ -45,7 +45,7 @@
   },
   
   "ongoingEvent": null,
-  
+  축
   "outfitChanges": {
     "partner": null,
     "user": null
@@ -82,7 +82,7 @@
 
 ## 추천 LLM 모델
 
-- **모델**: Claude 3.5 Sonnet, GPT-4
+- **모델**: Grok 4.1 Fast
 - **Temperature**: 0.8
 - **Max Tokens**: 1500
 - **이유**: 복잡한 판단, 세계 관리

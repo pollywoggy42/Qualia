@@ -25,11 +25,15 @@ UI 요청 시 (사용자가 "Generate Tags" 버튼 클릭)
 ## 출력 데이터
 
 ```json
-{
-  "sdxlTags": "voluptuous body, large breasts, curvy",
-  "confidence": 0.95
-}
+[
+  "voluptuous body",
+  "large breasts",
+  "curvy",
+  "hourglass figure"
+]
 ```
+
+**출력 형식**: 단순 문자열 배열
 
 ## 핵심 책임
 
