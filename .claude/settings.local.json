@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub get:*)",
+      "Bash(/Users/wschoi/flutter/bin/flutter pub:*)",
+      "Bash(/Users/wschoi/flutter/bin/flutter analyze:*)",
+      "Bash(/Users/wschoi/flutter/bin/flutter build:*)",
+      "Bash(pkill:*)",
+      "Bash(find:*)",
+      "Bash(/Users/wschoi/flutter/bin/dart run build_runner:*)"
+    ]
+  }
+}
