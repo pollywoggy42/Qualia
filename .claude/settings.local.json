@@ -7,7 +7,31 @@
       "Bash(/Users/wschoi/flutter/bin/flutter build:*)",
       "Bash(pkill:*)",
       "Bash(find:*)",
-      "Bash(/Users/wschoi/flutter/bin/dart run build_runner:*)"
+      "Bash(/Users/wschoi/flutter/bin/dart run build_runner:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(fvm flutter analyze:*)",
+      "Bash(/opt/homebrew/bin/flutter analyze)",
+      "Bash(~/.flutter/bin/flutter analyze:*)",
+      "Bash(dart run build_runner build:*)",
+      "Bash(fvm dart run:*)",
+      "Bash(export PATH=\"$HOME/.pub-cache/bin:$HOME/fvm/default/bin:/opt/homebrew/bin:$PATH\")",
+      "Bash(/usr/local/bin/dart run build_runner build:*)",
+      "Bash(/opt/homebrew/bin/dart run build_runner build:*)",
+      "Bash(~/flutter/bin/dart run build_runner build:*)",
+      "Bash(~/flutter/bin/flutter pub:*)",
+      "Bash(~/flutter/bin/flutter gen-l10n:*)",
+      "Bash(~/flutter/bin/flutter analyze:*)",
+      "Bash(flutter run)",
+      "Bash(flutter run:*)",
+      "Bash(pod install:*)",
+      "Bash(rbenv local:*)",
+      "Bash(rbenv exec pod install:*)",
+      "Bash(rbenv exec gem install:*)",
+      "Bash(rbenv shell:*)",
+      "Bash(flutter pub run build_runner build:*)",
+      "Bash(nc:*)",
+      "WebFetch(domain:openrouter.ai)",
+      "WebSearch"
     ]
   }
 }

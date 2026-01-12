@@ -20,6 +20,10 @@ class OpenRouterService {
     required List<ChatMessage> messages,
     double temperature = 0.7,
     int? maxTokens,
+    double? topP,
+    double? frequencyPenalty,
+    double? presencePenalty,
+    List<String>? stop,
     String? systemPrompt,
   }) async {
     final requestMessages = <Map<String, String>>[];
@@ -43,6 +47,10 @@ class OpenRouterService {
       'messages': requestMessages,
       'temperature': temperature,
       if (maxTokens != null) 'max_tokens': maxTokens,
+      if (topP != null) 'top_p': topP,
+      if (frequencyPenalty != null) 'frequency_penalty': frequencyPenalty,
+      if (presencePenalty != null) 'presence_penalty': presencePenalty,
+      if (stop != null && stop.isNotEmpty) 'stop': stop,
     };
 
     final response = await _client.post(

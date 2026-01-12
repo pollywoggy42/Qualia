@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/comfyui_model_preset.dart';
+import '../../models/partner_profile.dart';
+import '../../providers/scenario_generator_provider.dart';
+import '../../services/agents/scenario_generator.dart';
+import '../../widgets/glass_card.dart';
 import 'widgets/preset_editor.dart';
+import 'widgets/partner_editor.dart';
 
 /// New Session View - Session creation flow
 /// Step 0: Select Preset
 /// Step 1: Customize Preset
-/// Step 2: Select Gender
+/// Step 2: Gender Selection (User + Partner combined)
 /// Step 3: Loading
 /// Step 4: Result
 class NewSessionView extends ConsumerStatefulWidget {
@@ -22,7 +28,11 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
   int _currentStep = 0;
   String? _selectedPresetId;
   ComfyUIModelPreset? _customizedPreset;
-  String? _selectedGender;
+  String? _selectedUserGender;
+  String? _selectedPartnerGender;
+  PartnerProfile? _generatedPartner;
+  ScenarioInfo? _scenarioInfo;
+  String? _generationError;
 
   ComfyUIModelPreset? get _basePreset {
     if (_selectedPresetId == null) return null;
@@ -42,7 +52,7 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_getStepTitle()),
+        title: Text(_getStepTitle(context)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: _handleBack,
@@ -52,20 +62,21 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
     );
   }
 
-  String _getStepTitle() {
+  String _getStepTitle(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     switch (_currentStep) {
       case 0:
-        return 'Select Style';
+        return l10n.selectStyle;
       case 1:
-        return 'Customize Preset';
+        return l10n.customizePreset;
       case 2:
-        return 'Partner Gender';
+        return l10n.userGender; // Combined gender selection
       case 3:
-        return 'Generating...';
+        return l10n.generating;
       case 4:
-        return 'Ready!';
+        return l10n.ready;
       default:
-        return 'New Session';
+        return l10n.newSession;
     }
   }
 
@@ -84,7 +95,7 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
       case 1:
         return _buildPresetCustomization();
       case 2:
-        return _buildGenderSelection();
+        return _buildGenderSelection(); // Combined gender selection
       case 3:
         return _buildLoadingScreen();
       case 4:
@@ -95,18 +106,20 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
   }
 
   Widget _buildPresetSelection() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Choose Visual Style',
+            l10n.chooseVisualStyle,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
           Text(
-            'This determines the AI model used for image generation',
+            l10n.visualStyleDesc,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey,
                 ),
@@ -117,25 +130,25 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
               children: [
                 _buildPresetCard(
                   'realistic',
-                  'Realistic',
+                  l10n.realistic,
                   'SDXL',
-                  'Photorealistic portraits with fine details',
+                  l10n.realisticDesc,
                   Icons.photo_camera,
                   Colors.blue,
                 ),
                 _buildPresetCard(
                   'anime',
-                  'Anime',
+                  l10n.anime,
                   'SDXL',
-                  'Anime-style with vibrant colors',
+                  l10n.animeDesc,
                   Icons.brush,
                   Colors.purple,
                 ),
                 _buildPresetCard(
                   'pony',
-                  'Semi-Realistic',
+                  l10n.semiRealistic,
                   'Pony',
-                  'Score-based prompting for flexibility',
+                  l10n.semiRealisticDesc,
                   Icons.auto_awesome,
                   Colors.orange,
                 ),
@@ -152,7 +165,7 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
                       setState(() => _currentStep = 1);
                     }
                   : null,
-              child: const Text('Next: Customize'),
+              child: Text(l10n.nextCustomize),
             ),
           ),
         ],
@@ -169,80 +182,56 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
     Color accentColor,
   ) {
     final isSelected = _selectedPresetId == id;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
+    return GlassCard(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isSelected ? accentColor : Colors.transparent,
-          width: 2,
-        ),
-      ),
-      child: InkWell(
-        onTap: () => setState(() => _selectedPresetId = id),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: accentColor.withAlpha(30),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: 28, color: accentColor),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      isSelected: isSelected,
+      selectedBorderColor: accentColor,
+      onTap: () => setState(() => _selectedPresetId = id),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: accentColor.withAlpha(30),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 28, color: accentColor),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.grey[800] : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            category,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
                     Text(
-                      description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey,
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
+                    ),
+                    const SizedBox(width: 8),
+                    GlassChip(
+                      label: category,
+                      color: accentColor,
                     ),
                   ],
                 ),
-              ),
-              if (isSelected)
-                Icon(Icons.check_circle, color: accentColor),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey,
+                      ),
+                ),
+              ],
+            ),
           ),
-        ),
+          if (isSelected)
+            Icon(Icons.check_circle, color: accentColor),
+        ],
       ),
     );
   }
@@ -316,7 +305,7 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
                 flex: 2,
                 child: ElevatedButton(
                   onPressed: () => setState(() => _currentStep = 2),
-                  child: const Text('Next: Choose Partner'),
+                  child: const Text('Next: Your Gender'),
                 ),
               ),
             ],
@@ -326,50 +315,91 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
     );
   }
 
+  /// Combined Gender Selection - User + Partner in one screen
   Widget _buildGenderSelection() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // User Gender Section
           Text(
-            'Who do you want to meet?',
-            style: Theme.of(context).textTheme.headlineSmall,
+            l10n.whoAreYou,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Choose your partner\'s gender',
+            l10n.selectYourGender,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey,
                 ),
           ),
+          const SizedBox(height: 16),
+          // User Gender Grid
+          SizedBox(
+            height: 120,
+            child: Row(
+              children: [
+                Expanded(child: _buildGenderCard('female', l10n.female, Icons.female, Colors.pink, true)),
+                const SizedBox(width: 12),
+                Expanded(child: _buildGenderCard('male', l10n.male, Icons.male, Colors.blue, true)),
+                const SizedBox(width: 12),
+                Expanded(child: _buildGenderCard('other', l10n.other, Icons.transgender, Colors.purple, true)),
+              ],
+            ),
+          ),
           const SizedBox(height: 32),
+          
+          // Partner Gender Section
+          Text(
+            l10n.whoToMeet,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.selectPartnerGender,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey,
+                ),
+          ),
+          const SizedBox(height: 16),
+          // Partner Gender Grid
           Expanded(
             child: GridView.count(
               crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 1.2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.3,
               children: [
-                _buildGenderCard('female', 'Female', Icons.female, Colors.pink),
-                _buildGenderCard('male', 'Male', Icons.male, Colors.blue),
-                _buildGenderCard('other', 'Other', Icons.transgender, Colors.purple),
-                _buildGenderCard('random', 'Random', Icons.casino, Colors.orange),
+                _buildGenderCard('female', l10n.female, Icons.female, Colors.pink, false),
+                _buildGenderCard('male', l10n.male, Icons.male, Colors.blue, false),
+                _buildGenderCard('other', l10n.other, Icons.transgender, Colors.purple, false),
+                _buildGenderCard('random', l10n.random, Icons.casino, Colors.orange, false),
               ],
             ),
           ),
           const SizedBox(height: 16),
+          // Generate Button (larger size)
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _selectedGender != null
+              onPressed: _selectedUserGender != null && _selectedPartnerGender != null
                   ? () {
                       setState(() => _currentStep = 3);
                       _generateScenario();
                     }
                   : null,
               icon: const Icon(Icons.auto_awesome),
-              label: const Text('Generate Partner'),
+              label: Text(l10n.generatePartner),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
             ),
           ),
         ],
@@ -377,51 +407,56 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
     );
   }
 
-  Widget _buildGenderCard(String id, String label, IconData icon, Color color) {
-    final isSelected = _selectedGender == id;
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isSelected ? color : Colors.transparent,
-          width: 2,
-        ),
-      ),
-      child: InkWell(
-        onTap: () => setState(() => _selectedGender = id),
-        borderRadius: BorderRadius.circular(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: isSelected ? color.withAlpha(30) : Colors.grey.withAlpha(30),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 36,
-                color: isSelected ? color : Colors.grey,
-              ),
+  /// Unified gender card builder for both user and partner
+  Widget _buildGenderCard(String id, String label, IconData icon, Color color, bool isUserGender) {
+    final isSelected = isUserGender 
+        ? _selectedUserGender == id
+        : _selectedPartnerGender == id;
+    
+    return GlassCard(
+      isSelected: isSelected,
+      selectedBorderColor: color,
+      onTap: () => setState(() {
+        if (isUserGender) {
+          _selectedUserGender = id;
+        } else {
+          _selectedPartnerGender = id;
+        }
+      }),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: isSelected ? color.withAlpha(30) : Colors.grey.withAlpha(30),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? color : null,
-              ),
+            child: Icon(
+              icon,
+              size: 28,
+              color: isSelected ? color : Colors.grey,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? color : null,
+            ),
+          ),
+        ],
       ),
     );
   }
 
+
   Widget _buildLoadingScreen() {
+    final scenarioState = ref.watch(scenarioGenerationProvider);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -438,85 +473,206 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Generating scenario and appearance',
+            scenarioState.isLoading
+                ? 'Generating scenario and appearance'
+                : 'Preparing your story...',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey,
                 ),
           ),
+          if (scenarioState.hasError) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.symmetric(horizontal: 32),
+              decoration: BoxDecoration(
+                color: Colors.orange.withAlpha(30),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.orange, size: 18),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'Using sample data (API not configured)',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.orange[800],
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
   Widget _buildResultScreen() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.green.withAlpha(30),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check, size: 64, color: Colors.green),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'Partner Ready!',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Your scenario has been generated.\nTap Start to begin your story.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey,
+    if (_generatedPartner == null) {
+      return const Center(child: Text('No partner generated'));
+    }
+
+    return Column(
+      children: [
+        // Info banner
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          color: Colors.green.withAlpha(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.check_circle, size: 18, color: Colors.green),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Partner generated! Review and edit the details, then start your story.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ),
-            ),
-            const SizedBox(height: 48),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                OutlinedButton.icon(
+                ],
+              ),
+              if (_scenarioInfo != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _scenarioInfo!.title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _scenarioInfo!.setting,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[700],
+                      ),
+                ),
+              ],
+              if (_generationError != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline, size: 14, color: Colors.orange),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Using sample data (configure OpenRouter API key for AI generation)',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.orange[800],
+                              fontSize: 11,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+        // Partner Editor
+        Expanded(
+          child: PartnerEditor(
+            profile: _generatedPartner!,
+            onChanged: (updated) {
+              _generatedPartner = updated;
+            },
+          ),
+        ),
+        // Bottom buttons
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(10),
+                blurRadius: 8,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
                   onPressed: () {
-                    setState(() => _currentStep = 3);
+                    setState(() => _currentStep = 4);
                     _generateScenario();
                   },
                   icon: const Icon(Icons.refresh),
                   label: const Text('Reroll'),
                 ),
-                const SizedBox(width: 16),
-                ElevatedButton.icon(
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton.icon(
                   onPressed: () {
-                    // TODO: Create session with _customizedPreset and start
+                    // TODO: Create session with _customizedPreset and _generatedPartner
                     context.go('/chat/new-session-id');
                   },
                   icon: const Icon(Icons.play_arrow),
-                  label: const Text('Start'),
+                  label: const Text('Start Story'),
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 12,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
   Future<void> _generateScenario() async {
-    // TODO: Call Scenario Generator agent with _customizedPreset
-    await Future.delayed(const Duration(seconds: 3));
-    if (mounted) {
-      setState(() => _currentStep = 4);
+    setState(() {
+      _generationError = null;
+    });
+
+    final partnerGender = _selectedPartnerGender == 'random'
+        ? ['female', 'male', 'other'][DateTime.now().millisecond % 3]
+        : _selectedPartnerGender!;
+
+    try {
+      // Try to use the ScenarioGenerator agent
+      final result = await ref.read(scenarioGenerationProvider.notifier).generate(
+        userGender: _selectedUserGender!,
+        partnerGender: partnerGender,
+      );
+
+      if (mounted) {
+        if (result != null) {
+          setState(() {
+            _generatedPartner = result.partner;
+            _scenarioInfo = result.scenario;
+            _currentStep = 5;
+          });
+        } else {
+          // Fallback to sample data if generation fails
+          setState(() {
+            _generatedPartner = generateSamplePartner(gender: partnerGender);
+            _scenarioInfo = null;
+            _currentStep = 5;
+          });
+        }
+      }
+    } catch (e) {
+      // Fallback to sample data on error
+      if (mounted) {
+        setState(() {
+          _generatedPartner = generateSamplePartner(gender: partnerGender);
+          _scenarioInfo = null;
+          _generationError = e.toString();
+          _currentStep = 5;
+        });
+      }
     }
   }
 }

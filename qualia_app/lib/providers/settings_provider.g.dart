@@ -25,26 +25,8 @@ final allAgentSettingsProvider =
 
 typedef AllAgentSettingsRef
     = AutoDisposeProviderRef<Map<String, AgentSettings>>;
-String _$themeModeNotifierHash() => r'b0765ff0f082a12101b1a379eda0ad3b97262407';
-
-/// 테마 모드 Provider
-///
-/// Copied from [ThemeModeNotifier].
-@ProviderFor(ThemeModeNotifier)
-final themeModeNotifierProvider =
-    AutoDisposeNotifierProvider<ThemeModeNotifier, ThemeMode>.internal(
-  ThemeModeNotifier.new,
-  name: r'themeModeNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$themeModeNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-typedef _$ThemeModeNotifier = AutoDisposeNotifier<ThemeMode>;
 String _$agentSettingsNotifierHash() =>
-    r'e73b5e6aed97a015913176944ff3d86fb97e1a9d';
+    r'50d903d31a2dcf52446e947dfe9d303d87c0eb46';
 
 /// Copied from Dart SDK
 class _SystemHash {

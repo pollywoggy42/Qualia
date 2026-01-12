@@ -34,9 +34,9 @@ class QualiaTheme {
         surface: Colors.white,
         onSurface: Colors.black87,
       ),
-      scaffoldBackgroundColor: Colors.white,
+      scaffoldBackgroundColor: const Color(0xFFF2F2F7), // iOS 26 Light Gray
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFFF2F2F7), // iOS 26 Light Gray
         foregroundColor: Colors.black87,
         elevation: 0,
         centerTitle: true,

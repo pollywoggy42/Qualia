@@ -9,9 +9,9 @@ class StorageService {
   static const String _sessionsBox = 'sessions';
   static const String _presetsBox = 'presets';
 
-  late Box<String> _settings;
-  late Box<String> _sessions;
-  late Box<String> _presets;
+  late Box _settings;
+  late Box _sessions;
+  late Box _presets;
 
   bool _initialized = false;
 
@@ -21,9 +21,16 @@ class StorageService {
 
     await Hive.initFlutter();
 
-    _settings = await Hive.openBox<String>(_settingsBox);
-    _sessions = await Hive.openBox<String>(_sessionsBox);
-    _presets = await Hive.openBox<String>(_presetsBox);
+    // Check if boxes are already open to avoid type conflicts
+    _settings = Hive.isBoxOpen(_settingsBox)
+        ? Hive.box(_settingsBox)
+        : await Hive.openBox(_settingsBox);
+    _sessions = Hive.isBoxOpen(_sessionsBox)
+        ? Hive.box(_sessionsBox)
+        : await Hive.openBox(_sessionsBox);
+    _presets = Hive.isBoxOpen(_presetsBox)
+        ? Hive.box(_presetsBox)
+        : await Hive.openBox(_presetsBox);
 
     _initialized = true;
   }
@@ -32,11 +39,15 @@ class StorageService {
 
   /// OpenRouter API 키 저장
   Future<void> setOpenRouterApiKey(String apiKey) async {
+    if (!_initialized) {
+      throw StateError('StorageService not initialized. Call initialize() first.');
+    }
     await _settings.put('openrouter_api_key', apiKey);
   }
 
   /// OpenRouter API 키 조회
   String? getOpenRouterApiKey() {
+    if (!_initialized) return null;
     return _settings.get('openrouter_api_key');
   }
 
@@ -62,11 +73,15 @@ class StorageService {
 
   /// 테마 모드 저장
   Future<void> setThemeMode(String mode) async {
+    if (!_initialized) {
+      throw StateError('StorageService not initialized. Call initialize() first.');
+    }
     await _settings.put('theme_mode', mode);
   }
 
   /// 테마 모드 조회
   String getThemeMode() {
+    if (!_initialized) return 'system';
     return _settings.get('theme_mode') ?? 'system';
   }
 
@@ -158,6 +173,9 @@ class StorageService {
 
   /// Agent 설정 조회
   AgentSettings getAgentSettings(String agentName) {
+    if (!_initialized) {
+      return AgentSettings.defaultFor(agentName);
+    }
     final json = _settings.get('agent_$agentName');
     if (json == null) {
       return AgentSettings.defaultFor(agentName);
@@ -175,32 +193,89 @@ class StorageService {
   }
 }
 
-/// Agent Settings
+/// Agent Settings - OpenRouter API 호출 파라미터
 class AgentSettings {
   final String model;
   final double temperature;
+  final int maxTokens;
+  final double? topP;
+  final double? frequencyPenalty;
+  final double? presencePenalty;
 
   AgentSettings({
     required this.model,
     required this.temperature,
+    this.maxTokens = 2048,
+    this.topP,
+    this.frequencyPenalty,
+    this.presencePenalty,
   });
 
   factory AgentSettings.defaultFor(String agentName) {
     switch (agentName) {
       case 'partner':
-        return AgentSettings(model: 'x-ai/grok-3-fast', temperature: 0.7);
+        return AgentSettings(
+          model: 'x-ai/grok-3-fast',
+          temperature: 0.7,
+          maxTokens: 2048,
+          topP: 0.9,
+          frequencyPenalty: 0.0,
+          presencePenalty: 0.0,
+        );
       case 'scenario_director':
-        return AgentSettings(model: 'x-ai/grok-3-fast', temperature: 0.8);
+        return AgentSettings(
+          model: 'x-ai/grok-3-fast',
+          temperature: 0.8,
+          maxTokens: 4096,
+          topP: 0.95,
+          frequencyPenalty: 0.0,
+          presencePenalty: 0.0,
+        );
       case 'visual_director':
-        return AgentSettings(model: 'x-ai/grok-3-fast', temperature: 0.5);
+        return AgentSettings(
+          model: 'x-ai/grok-3-fast',
+          temperature: 0.5,
+          maxTokens: 1024,
+          topP: 0.8,
+          frequencyPenalty: 0.0,
+          presencePenalty: 0.0,
+        );
       case 'strategist':
-        return AgentSettings(model: 'x-ai/grok-3-fast', temperature: 0.7);
+        return AgentSettings(
+          model: 'x-ai/grok-3-fast',
+          temperature: 0.7,
+          maxTokens: 2048,
+          topP: 0.9,
+          frequencyPenalty: 0.0,
+          presencePenalty: 0.0,
+        );
       case 'scenario_generator':
-        return AgentSettings(model: 'x-ai/grok-3-fast', temperature: 0.9);
+        return AgentSettings(
+          model: 'x-ai/grok-3-fast',
+          temperature: 0.9,
+          maxTokens: 8192,
+          topP: 0.95,
+          frequencyPenalty: 0.0,
+          presencePenalty: 0.0,
+        );
       case 'sdxl_transformer':
-        return AgentSettings(model: 'openai/gpt-4o-mini', temperature: 0.3);
+        return AgentSettings(
+          model: 'openai/gpt-4o-mini',
+          temperature: 0.3,
+          maxTokens: 512,
+          topP: 0.8,
+          frequencyPenalty: 0.0,
+          presencePenalty: 0.0,
+        );
       default:
-        return AgentSettings(model: 'x-ai/grok-3-fast', temperature: 0.7);
+        return AgentSettings(
+          model: 'x-ai/grok-3-fast',
+          temperature: 0.7,
+          maxTokens: 2048,
+          topP: 0.9,
+          frequencyPenalty: 0.0,
+          presencePenalty: 0.0,
+        );
     }
   }
 
@@ -208,11 +283,37 @@ class AgentSettings {
     return AgentSettings(
       model: json['model'] as String,
       temperature: (json['temperature'] as num).toDouble(),
+      maxTokens: json['maxTokens'] as int? ?? 2048,
+      topP: (json['topP'] as num?)?.toDouble(),
+      frequencyPenalty: (json['frequencyPenalty'] as num?)?.toDouble(),
+      presencePenalty: (json['presencePenalty'] as num?)?.toDouble(),
     );
   }
 
   Map<String, dynamic> toJson() => {
     'model': model,
     'temperature': temperature,
+    'maxTokens': maxTokens,
+    if (topP != null) 'topP': topP,
+    if (frequencyPenalty != null) 'frequencyPenalty': frequencyPenalty,
+    if (presencePenalty != null) 'presencePenalty': presencePenalty,
   };
+
+  AgentSettings copyWith({
+    String? model,
+    double? temperature,
+    int? maxTokens,
+    double? topP,
+    double? frequencyPenalty,
+    double? presencePenalty,
+  }) {
+    return AgentSettings(
+      model: model ?? this.model,
+      temperature: temperature ?? this.temperature,
+      maxTokens: maxTokens ?? this.maxTokens,
+      topP: topP ?? this.topP,
+      frequencyPenalty: frequencyPenalty ?? this.frequencyPenalty,
+      presencePenalty: presencePenalty ?? this.presencePenalty,
+    );
+  }
 }

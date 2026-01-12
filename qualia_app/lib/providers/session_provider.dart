@@ -10,8 +10,16 @@ part 'session_provider.g.dart';
 class SessionList extends _$SessionList {
   @override
   List<Session> build() {
-    final storage = ref.watch(storageServiceProvider);
-    return storage.getAllSessions();
+    // Storage 초기화 확인
+    final initialized = ref.watch(storageInitializedProvider);
+    return initialized.when(
+      data: (_) {
+        final storage = ref.watch(storageServiceProvider);
+        return storage.getAllSessions();
+      },
+      loading: () => [],
+      error: (_, __) => [],
+    );
   }
 
   Future<void> createSession(Session session) async {
@@ -36,8 +44,16 @@ class SessionList extends _$SessionList {
 class CurrentSession extends _$CurrentSession {
   @override
   Session? build(String sessionId) {
-    final storage = ref.watch(storageServiceProvider);
-    return storage.getSession(sessionId);
+    // Storage 초기화 확인
+    final initialized = ref.watch(storageInitializedProvider);
+    return initialized.when(
+      data: (_) {
+        final storage = ref.watch(storageServiceProvider);
+        return storage.getSession(sessionId);
+      },
+      loading: () => null,
+      error: (_, __) => null,
+    );
   }
 
   Future<void> updateSession(Session session) async {
