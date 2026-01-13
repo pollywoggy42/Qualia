@@ -33,6 +33,9 @@ class Session with _$Session {
     // Generated Images
     @Default([]) List<GeneratedImage> images,
 
+    // Profile Image
+    String? profileImageUrl,
+
     // Session Settings
     @Default(false) bool isNSFWEnabled,
 

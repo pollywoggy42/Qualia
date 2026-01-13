@@ -32,6 +32,8 @@ mixin _$Session {
   List<ChatMessage> get messages =>
       throw _privateConstructorUsedError; // Generated Images
   List<GeneratedImage> get images =>
+      throw _privateConstructorUsedError; // Profile Image
+  String? get profileImageUrl =>
       throw _privateConstructorUsedError; // Session Settings
   bool get isNSFWEnabled =>
       throw _privateConstructorUsedError; // Persistent Choices
@@ -58,6 +60,7 @@ abstract class $SessionCopyWith<$Res> {
       ComfyUIModelPreset modelPreset,
       List<ChatMessage> messages,
       List<GeneratedImage> images,
+      String? profileImageUrl,
       bool isNSFWEnabled,
       List<StrategyChoice>? currentChoices});
 
@@ -89,6 +92,7 @@ class _$SessionCopyWithImpl<$Res, $Val extends Session>
     Object? modelPreset = null,
     Object? messages = null,
     Object? images = null,
+    Object? profileImageUrl = freezed,
     Object? isNSFWEnabled = null,
     Object? currentChoices = freezed,
   }) {
@@ -129,6 +133,10 @@ class _$SessionCopyWithImpl<$Res, $Val extends Session>
           ? _value.images
           : images // ignore: cast_nullable_to_non_nullable
               as List<GeneratedImage>,
+      profileImageUrl: freezed == profileImageUrl
+          ? _value.profileImageUrl
+          : profileImageUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
       isNSFWEnabled: null == isNSFWEnabled
           ? _value.isNSFWEnabled
           : isNSFWEnabled // ignore: cast_nullable_to_non_nullable
@@ -190,6 +198,7 @@ abstract class _$$SessionImplCopyWith<$Res> implements $SessionCopyWith<$Res> {
       ComfyUIModelPreset modelPreset,
       List<ChatMessage> messages,
       List<GeneratedImage> images,
+      String? profileImageUrl,
       bool isNSFWEnabled,
       List<StrategyChoice>? currentChoices});
 
@@ -223,6 +232,7 @@ class __$$SessionImplCopyWithImpl<$Res>
     Object? modelPreset = null,
     Object? messages = null,
     Object? images = null,
+    Object? profileImageUrl = freezed,
     Object? isNSFWEnabled = null,
     Object? currentChoices = freezed,
   }) {
@@ -263,6 +273,10 @@ class __$$SessionImplCopyWithImpl<$Res>
           ? _value._images
           : images // ignore: cast_nullable_to_non_nullable
               as List<GeneratedImage>,
+      profileImageUrl: freezed == profileImageUrl
+          ? _value.profileImageUrl
+          : profileImageUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
       isNSFWEnabled: null == isNSFWEnabled
           ? _value.isNSFWEnabled
           : isNSFWEnabled // ignore: cast_nullable_to_non_nullable
@@ -288,6 +302,7 @@ class _$SessionImpl implements _Session {
       required this.modelPreset,
       final List<ChatMessage> messages = const [],
       final List<GeneratedImage> images = const [],
+      this.profileImageUrl,
       this.isNSFWEnabled = false,
       final List<StrategyChoice>? currentChoices})
       : _messages = messages,
@@ -336,6 +351,9 @@ class _$SessionImpl implements _Session {
     return EqualUnmodifiableListView(_images);
   }
 
+// Profile Image
+  @override
+  final String? profileImageUrl;
 // Session Settings
   @override
   @JsonKey()
@@ -354,7 +372,7 @@ class _$SessionImpl implements _Session {
 
   @override
   String toString() {
-    return 'Session(id: $id, createdAt: $createdAt, lastActiveAt: $lastActiveAt, partner: $partner, user: $user, worldState: $worldState, modelPreset: $modelPreset, messages: $messages, images: $images, isNSFWEnabled: $isNSFWEnabled, currentChoices: $currentChoices)';
+    return 'Session(id: $id, createdAt: $createdAt, lastActiveAt: $lastActiveAt, partner: $partner, user: $user, worldState: $worldState, modelPreset: $modelPreset, messages: $messages, images: $images, profileImageUrl: $profileImageUrl, isNSFWEnabled: $isNSFWEnabled, currentChoices: $currentChoices)';
   }
 
   @override
@@ -375,6 +393,8 @@ class _$SessionImpl implements _Session {
                 other.modelPreset == modelPreset) &&
             const DeepCollectionEquality().equals(other._messages, _messages) &&
             const DeepCollectionEquality().equals(other._images, _images) &&
+            (identical(other.profileImageUrl, profileImageUrl) ||
+                other.profileImageUrl == profileImageUrl) &&
             (identical(other.isNSFWEnabled, isNSFWEnabled) ||
                 other.isNSFWEnabled == isNSFWEnabled) &&
             const DeepCollectionEquality()
@@ -394,6 +414,7 @@ class _$SessionImpl implements _Session {
       modelPreset,
       const DeepCollectionEquality().hash(_messages),
       const DeepCollectionEquality().hash(_images),
+      profileImageUrl,
       isNSFWEnabled,
       const DeepCollectionEquality().hash(_currentChoices));
 
@@ -422,6 +443,7 @@ abstract class _Session implements Session {
       required final ComfyUIModelPreset modelPreset,
       final List<ChatMessage> messages,
       final List<GeneratedImage> images,
+      final String? profileImageUrl,
       final bool isNSFWEnabled,
       final List<StrategyChoice>? currentChoices}) = _$SessionImpl;
 
@@ -445,6 +467,8 @@ abstract class _Session implements Session {
   List<ChatMessage> get messages;
   @override // Generated Images
   List<GeneratedImage> get images;
+  @override // Profile Image
+  String? get profileImageUrl;
   @override // Session Settings
   bool get isNSFWEnabled;
   @override // Persistent Choices

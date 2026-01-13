@@ -25,6 +25,7 @@ _$SessionImpl _$$SessionImplFromJson(Map<String, dynamic> json) =>
               ?.map((e) => GeneratedImage.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      profileImageUrl: json['profileImageUrl'] as String?,
       isNSFWEnabled: json['isNSFWEnabled'] as bool? ?? false,
       currentChoices: (json['currentChoices'] as List<dynamic>?)
           ?.map((e) => StrategyChoice.fromJson(e as Map<String, dynamic>))
@@ -42,6 +43,7 @@ Map<String, dynamic> _$$SessionImplToJson(_$SessionImpl instance) =>
       'modelPreset': instance.modelPreset,
       'messages': instance.messages,
       'images': instance.images,
+      'profileImageUrl': instance.profileImageUrl,
       'isNSFWEnabled': instance.isNSFWEnabled,
       'currentChoices': instance.currentChoices,
     };

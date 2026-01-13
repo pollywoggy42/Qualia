@@ -7,15 +7,17 @@ import '../../../config/theme.dart';
 /// User Panel - Shows loading states, choices, and current action
 /// This replaces the separate choice cards with an integrated panel
 class UserPanel extends StatefulWidget {
+  final ScrollController? scrollController;
   final bool isProcessing;
   final int processingStage;
   final List<StrategyChoice>? choices;
   final ValueChanged<int>? onChoiceSelected;
   final VoidCallback? onRefresh;
-  final ValueChanged<String>? onDirectInputSubmitted; // Changed to accept string
+  final ValueChanged<String>? onDirectInputSubmitted;
 
   const UserPanel({
     super.key,
+    this.scrollController,
     this.isProcessing = false,
     this.processingStage = 0,
     this.choices,
@@ -69,29 +71,52 @@ class _UserPanelState extends State<UserPanel> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(isDark ? 0.4 : 0.15),
             blurRadius: 20,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, -4),
           ),
         ],
       ),
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (Widget child, Animation<double> animation) {
-          return SizeTransition(
-            sizeFactor: animation,
-            child: FadeTransition(opacity: animation, child: child),
-          );
-        },
-        child: _isInputMode 
-          ? _buildInputView(context, isDark)
-          : _buildChoicesView(context, isDark),
+      child: ListView(
+        controller: widget.scrollController,
+        padding: EdgeInsets.zero,
+        children: [
+          // Drag handle
+          _buildDragHandle(isDark),
+          
+          // Content
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return SizeTransition(
+                sizeFactor: animation,
+                child: FadeTransition(opacity: animation, child: child),
+              );
+            },
+            child: _isInputMode 
+              ? _buildInputView(context, isDark)
+              : _buildChoicesView(context, isDark),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDragHandle(bool isDark) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.only(top: 8, bottom: 4),
+        width: 40,
+        height: 4,
+        decoration: BoxDecoration(
+          color: isDark ? Colors.grey[600] : Colors.grey[400],
+          borderRadius: BorderRadius.circular(2),
+        ),
       ),
     );
   }
@@ -370,6 +395,16 @@ class _UserPanelState extends State<UserPanel> {
                 onPressed: widget.onRefresh,
                 tooltip: 'New Choices',
               ),
+            // Next Chapter Button
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
+              color: isDark ? Colors.white54 : Colors.grey[600],
+              onPressed: () {
+                // TODO: Implement next chapter logic
+              },
+              tooltip: 'Next Chapter',
+            ),
           ],
         ],
       ),

@@ -8,6 +8,7 @@ import '../../providers/session_provider.dart';
 import '../../models/models.dart';
 
 import '../../widgets/glass_card.dart';
+import '../../widgets/image_lightbox.dart';
 import '../status/status_modal.dart';
 import 'widgets/message_bubble.dart';
 import 'widgets/user_panel.dart';
@@ -75,22 +76,18 @@ class _ChatViewState extends ConsumerState<ChatView> {
               child: Column(
                 children: [
                   // Avatar
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isDark ? Colors.grey[800] : Colors.grey[200],
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                        width: 1.5,
-                      ),
-                      // TODO: Use partner face description or a placeholder that isn't network for now if offline
-                      image: null, // Removed unstable NetworkImage
-                    ),
-                     child: chatState.partner != null 
-                        ? Center(child: Text(chatState.partner!.name[0], style: const TextStyle(fontWeight: FontWeight.bold))) 
-                        : const Center(child: Icon(Icons.person, color: Colors.grey)),
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    backgroundImage: chatState.profileImageUrl != null 
+                        ? NetworkImage(chatState.profileImageUrl!) 
+                        : null,
+                    child: chatState.profileImageUrl == null && chatState.partner != null 
+                        ? Text(
+                            chatState.partner!.name[0], 
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ) 
+                        : (chatState.partner == null ? const Icon(Icons.person, color: Colors.grey) : null),
                   ),
                   const SizedBox(height: 4),
                   // Name & Status
@@ -131,83 +128,88 @@ class _ChatViewState extends ConsumerState<ChatView> {
             const SizedBox(width: 8),
           ],
         ),
-        body: Column(
+        body: Stack(
           children: [
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                itemCount: messages.length + 1, // +1 for spacing at bottom
-                itemBuilder: (context, index) {
-                  if (index == messages.length) {
-                    return const SizedBox(height: 100); // Space for user panel
-                  }
-                  
-                  final message = messages[index];
-                  
-                  // Wrap content including image if present
-                  return Column(
-                    children: [
-                      // 1. Image (if present)
-                      if (message.imageId != null)
-                        Builder(
-                          builder: (context) {
-                             final image = images.firstWhere(
-                               (img) => img.id == message.imageId,
-                               orElse: () => GeneratedImage(id: '', url: '', prompt: '', createdAt: DateTime.now()), // Dummy
-                             );
-                             if (image.url.isNotEmpty) {
-                               return Padding(
-                                 padding: const EdgeInsets.only(bottom: 16.0),
-                                 child: _buildImageMessage(isDark, image.url),
-                               );
-                             }
-                             return const SizedBox.shrink();
-                          }
-                        ),
-                        
-                      // 2. Narrator (if present)
-                      if (message.narration != null && message.narration!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          child: NarratorBlock(text: message.narration!),
-                        ),
-                        
-                      // 3. Dialogue/Action Bubble
-                      // Only show if there's dialogue, action, or inner thought
-                      if ((message.dialogues != null && message.dialogues!.isNotEmpty) ||
-                          (message.actions != null && message.actions!.isNotEmpty) ||
-                          (message.innerThought != null && message.innerThought!.isNotEmpty))
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 20.0),
-                          child: MessageBubble(
-                            isPartner: message.type == MessageType.partner,
-                            partnerName: message.type == MessageType.partner 
-                                ? (chatState.partner?.name ?? 'Partner') 
-                                : 'You',
-                            actions: message.actions,
-                            dialogues: message.dialogues,
-                            innerThought: message.innerThought,
-                          ),
-                        ),
-                    ],
-                  );
-                },
+            // Chat messages
+            ListView.builder(
+              controller: _scrollController,
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 20,
+                bottom: MediaQuery.of(context).size.height * 0.35, // Space for draggable panel
               ),
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                final message = messages[index];
+                
+                // Wrap content including image if present
+                return Column(
+                  children: [
+                    // 1. Dialogue/Action Bubble (Partner or User dialogue)
+                    if (message.dialogues != null && message.dialogues!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 20.0),
+                        child: MessageBubble(
+                          isPartner: message.type == MessageType.partner,
+                          partnerName: chatState.partner?.name ?? 'Partner',
+                          actions: message.actions,
+                          dialogues: message.dialogues,
+                          innerThought: message.innerThought,
+                        ),
+                      ),
+                      
+                    // 2. Narrator/Director Response (if present)
+                    if (message.narration != null && message.narration!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: NarratorBlock(text: message.narration!),
+                      ),
+                      
+                    // 3. Image (after director response)
+                    if (message.imageId != null)
+                      Builder(
+                        builder: (context) {
+                           final image = images.firstWhere(
+                             (img) => img.id == message.imageId,
+                             orElse: () => GeneratedImage(id: '', url: '', prompt: '', createdAt: DateTime.now()),
+                           );
+                           if (image.url.isNotEmpty) {
+                             return Padding(
+                               padding: const EdgeInsets.only(bottom: 16.0),
+                               child: _buildImageMessage(isDark, image.url),
+                             );
+                           }
+                           return const SizedBox.shrink();
+                        }
+                      ),
+                  ],
+                );
+              },
             ),
             
-            // User Panel - Bottom
-            UserPanel(
-              isProcessing: isProcessing,
-              processingStage: processingStage,
-              choices: choices,
-              onChoiceSelected: (index) {
-                if (choices != null) {
-                  chatNotifier.handleUserChoice(choices[index]);
-                }
+            // Draggable User Panel
+            DraggableScrollableSheet(
+              initialChildSize: 0.3,
+              minChildSize: 0.15,
+              maxChildSize: 0.5,
+              snap: true,
+              snapSizes: const [0.15, 0.3, 0.5],
+              builder: (context, scrollController) {
+                return UserPanel(
+                  scrollController: scrollController,
+                  isProcessing: isProcessing,
+                  processingStage: processingStage,
+                  choices: choices,
+                  onChoiceSelected: (index) {
+                    if (choices != null) {
+                      chatNotifier.handleUserChoice(choices[index]);
+                    }
+                  },
+                  onRefresh: () => chatNotifier.refreshChoices(),
+                  onDirectInputSubmitted: (text) => chatNotifier.handleDirectInput(text),
+                );
               },
-              onRefresh: () => chatNotifier.refreshChoices(),
-              onDirectInputSubmitted: (text) => chatNotifier.handleDirectInput(text),
             ),
           ],
         ),
@@ -216,56 +218,61 @@ class _ChatViewState extends ConsumerState<ChatView> {
   }
 
   Widget _buildImageMessage(bool isDark, String imageUrl) {
-    return GlassCard(
-      layer: GlassLayer.middle,
-      padding: EdgeInsets.zero,
-      child: Stack(
-        children: [
-          Container(
-            constraints: const BoxConstraints(maxHeight: 300),
-            width: double.infinity,
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox(
-                height: 200,
-                child: Center(child: Icon(Icons.image_not_supported, size: 40)),
+    return Center(
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.85,
+        child: GestureDetector(
+          onTap: () {
+            // Open lightbox on tap
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                fullscreenDialog: true,
+                builder: (context) => ImageLightbox(imageUrl: imageUrl),
               ),
-            ),
-          ),
-          // ... (Rest of UI)
-          // Gradient Overlay Bottom
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 80,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.6),
-                  ],
+            );
+          },
+          child: Hero(
+            tag: 'image_$imageUrl',
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) {
+                    // Fade in when loaded
+                    return AnimatedOpacity(
+                      opacity: 1.0,
+                      duration: const Duration(milliseconds: 500),
+                      child: child,
+                    );
+                  }
+                  return AspectRatio(
+                    aspectRatio: 3 / 4,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (_, __, ___) => Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey[800] : Colors.grey[200],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.image_not_supported, size: 40),
+                  ),
                 ),
               ),
             ),
           ),
-
-          // Scale hint
-          Positioned(
-            bottom: 12,
-            right: 12,
-            child: GlassChip(
-              label: 'Expand',
-              icon: Icons.fullscreen,
-              color: Colors.white,
-              onTap: () {}, // TODO: Implement full screen view
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

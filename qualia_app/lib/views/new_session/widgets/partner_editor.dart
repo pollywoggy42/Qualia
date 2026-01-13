@@ -1,27 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/partner_profile.dart';
 import '../../../models/visual_descriptor.dart';
 import '../../../models/personality.dart';
 import '../../../models/partner_emotional_state.dart';
+import '../../../models/comfyui_model_preset.dart';
+import '../../../models/models.dart';
+import '../../../providers/profile_image_generator_provider.dart';
+import '../../../providers/comfyui_provider.dart';
+import '../../../services/agents/profile_image_generator.dart';
 import '../../../widgets/glass_card.dart';
 
 /// Partner Editor - 생성된 파트너 프로필 편집 위젯
-class PartnerEditor extends StatefulWidget {
+class PartnerEditor extends ConsumerStatefulWidget {
   final PartnerProfile profile;
   final ValueChanged<PartnerProfile> onChanged;
+  final ComfyUIModelPreset? modelPreset;
+  final ValueChanged<String?>? onProfileImageGenerated;
 
   const PartnerEditor({
     super.key,
     required this.profile,
     required this.onChanged,
+    this.modelPreset,
+    this.onProfileImageGenerated,
   });
 
   @override
-  State<PartnerEditor> createState() => _PartnerEditorState();
+  ConsumerState<PartnerEditor> createState() => _PartnerEditorState();
 }
 
-class _PartnerEditorState extends State<PartnerEditor>
+class _PartnerEditorState extends ConsumerState<PartnerEditor>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -48,11 +58,21 @@ class _PartnerEditorState extends State<PartnerEditor>
   late TextEditingController _speechStyleController;
   late TextEditingController _traitsController;
   late TextEditingController _secretController;
+  
+  // Emotional State Controllers
+  double _affection = 50.0;
+  double _trust = 30.0;
+  late TextEditingController _moodController;
+  
+  // Profile image generation state
+  String? _profileImageUrl;
+  bool _isGeneratingProfileImage = false;
+  String? _profileImageError;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _initControllers();
   }
 
@@ -80,6 +100,11 @@ class _PartnerEditorState extends State<PartnerEditor>
     _speechStyleController = TextEditingController(text: widget.profile.personality.speechStyle);
     _traitsController = TextEditingController(text: widget.profile.personality.traits.join(', '));
     _secretController = TextEditingController(text: widget.profile.secret ?? '');
+    
+    // Emotional State
+    _affection = widget.profile.emotionalState.affection.toDouble();
+    _trust = widget.profile.emotionalState.trust.toDouble();
+    _moodController = TextEditingController(text: widget.profile.emotionalState.mood);
   }
 
   @override
@@ -106,6 +131,8 @@ class _PartnerEditorState extends State<PartnerEditor>
     _speechStyleController.dispose();
     _traitsController.dispose();
     _secretController.dispose();
+    // Emotional State
+    _moodController.dispose();
     super.dispose();
   }
 
@@ -140,6 +167,11 @@ class _PartnerEditorState extends State<PartnerEditor>
         speechStyle: _speechStyleController.text,
         traits: _traitsController.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
       ),
+      emotionalState: PartnerEmotionalState(
+        affection: _affection.toInt(),
+        trust: _trust.toInt(),
+        mood: _moodController.text,
+      ),
       secret: _secretController.text.isEmpty ? null : _secretController.text,
     );
     widget.onChanged(updated);
@@ -166,6 +198,7 @@ class _PartnerEditorState extends State<PartnerEditor>
               Tab(icon: Icon(Icons.person), text: 'Basic'),
               Tab(icon: Icon(Icons.face), text: 'Appearance'),
               Tab(icon: Icon(Icons.psychology), text: 'Personality'),
+              Tab(icon: Icon(Icons.favorite), text: 'Emotional'),
             ],
           ),
         ),
@@ -177,6 +210,7 @@ class _PartnerEditorState extends State<PartnerEditor>
               _buildBasicTab(),
               _buildAppearanceTab(),
               _buildPersonalityTab(),
+              _buildEmotionalStateTab(),
             ],
           ),
         ),
@@ -242,6 +276,65 @@ class _PartnerEditorState extends State<PartnerEditor>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // Profile Image Section
+        GlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.photo_camera, size: 20, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Profile Image',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (_isGeneratingProfileImage)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (_profileImageUrl != null)
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      _profileImageUrl!,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              if (_profileImageError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    _profileImageError!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isGeneratingProfileImage ? null : _generateProfileImage,
+                  icon: const Icon(Icons.auto_awesome),
+                  label: Text(_profileImageUrl == null ? 'Generate Profile Image' : 'Regenerate'),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
         _buildVisualDescriptorCard(
           title: 'Face',
           icon: Icons.face,
@@ -279,6 +372,64 @@ class _PartnerEditorState extends State<PartnerEditor>
         const SizedBox(height: 24),
       ],
     );
+  }
+
+  Future<void> _generateProfileImage() async {
+    if (widget.modelPreset == null) {
+      setState(() {
+        _profileImageError = 'Model preset not available';
+      });
+      return;
+    }
+
+    setState(() {
+      _isGeneratingProfileImage = true;
+      _profileImageError = null;
+    });
+
+    try {
+      final profileGenerator = ref.read(profileImageGeneratorAgentProvider);
+      final comfyService = ref.read(comfyUIServiceProvider);
+      
+      if (profileGenerator == null) {
+        throw Exception('Profile generator not available (API key not configured)');
+      }
+
+      // Generate SDXL prompt using SDXL tags only
+      final profileInput = ProfileImageInput(
+        faceTags: _faceTagsController.text,
+        hairstyleTags: _hairstyleTagsController.text,
+        bodyTags: _bodyTagsController.text,
+        accessoriesTags: _accessoriesTagsController.text,
+      );
+      
+      final profileOutput = await profileGenerator.generate(profileInput);
+      
+      // Generate image using ComfyUI with SQUARE aspect ratio
+      final imageResult = await comfyService.generateImage(
+        positivePrompt: profileOutput.sdxlPrompt,
+        negativePrompt: 'blurry, low quality, distorted',
+        latentImageSize: ImageSize.square, // Always square for profile images
+        modelPreset: widget.modelPreset!,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _profileImageUrl = imageResult.imageUrl;
+          _isGeneratingProfileImage = false;
+        });
+        
+        // Notify parent if callback provided
+        widget.onProfileImageGenerated?.call(imageResult.imageUrl);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _profileImageError = 'Failed to generate image: ${e.toString()}';
+          _isGeneratingProfileImage = false;
+        });
+      }
+    }
   }
 
   Widget _buildPersonalityTab() {
@@ -336,6 +487,85 @@ class _PartnerEditorState extends State<PartnerEditor>
                 hint: 'A hidden truth about this character...',
                 icon: Icons.lock,
                 maxLines: 4,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildEmotionalStateTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        GlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeader('Initial Emotional State'),
+              const SizedBox(height: 8),
+              Text(
+                'Set the starting emotional values for your partner',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Affection Slider
+              Text(
+                'Affection: ${_affection.toInt()}',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Slider(
+                value: _affection,
+                min: 0,
+                max: 100,
+                divisions: 100,
+                label: _affection.toInt().toString(),
+                onChanged: (value) {
+                  setState(() {
+                    _affection = value;
+                  });
+                  _notifyChange();
+                },
+              ),
+              const SizedBox(height: 24),
+              
+              // Trust Slider
+              Text(
+                'Trust: ${_trust.toInt()}',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Slider(
+                value: _trust,
+                min: 0,
+                max: 100,
+                divisions: 100,
+                label: _trust.toInt().toString(),
+                onChanged: (value) {
+                  setState(() {
+                    _trust = value;
+                  });
+                  _notifyChange();
+                },
+              ),
+              const SizedBox(height: 24),
+              
+              // Mood TextField
+              _buildTextField(
+                controller: _moodController,
+                label: 'Mood',
+                hint: 'e.g., Curious, Shy, Excited',
+                icon: Icons.mood,
               ),
             ],
           ),

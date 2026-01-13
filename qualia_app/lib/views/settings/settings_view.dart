@@ -739,6 +739,12 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               description: 'Converts natural language to SDXL prompt tags',
               availableModels: availableModels,
             ),
+            _buildAgentCard(
+              agentKey: 'profile_image_generator',
+              name: 'Profile Image Generator',
+              description: 'Generates SDXL prompts for partner profile portraits',
+              availableModels: availableModels,
+            ),
           ],
         );
       },

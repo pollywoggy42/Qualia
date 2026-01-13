@@ -38,6 +38,7 @@ class ChatState {
   final UserProfile? user;
   final WorldState? worldState;
   final String? lastImageUrl;
+  final String? profileImageUrl;
   final String? error;
 
   ChatState({
@@ -50,6 +51,7 @@ class ChatState {
     this.user,
     this.worldState,
     this.lastImageUrl,
+    this.profileImageUrl,
     this.error,
   });
 
@@ -63,6 +65,7 @@ class ChatState {
     UserProfile? user,
     WorldState? worldState,
     String? lastImageUrl,
+    String? profileImageUrl,
     String? error,
   }) {
     return ChatState(
@@ -75,6 +78,7 @@ class ChatState {
       user: user ?? this.user,
       worldState: worldState ?? this.worldState,
       lastImageUrl: lastImageUrl ?? this.lastImageUrl,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       error: error ?? this.error,
     );
   }
@@ -120,11 +124,12 @@ class ChatNotifier extends _$ChatNotifier {
 
     return ChatState(
       sessionId: sessionId,
-      partner: session?.partner,
-      user: session?.user,
-      worldState: session?.worldState,
-      currentChoices: session?.currentChoices, // Restore choices
-      lastImageUrl: session?.images.isNotEmpty == true ? session!.images.last.url : null,
+      messages: session!.messages,
+      partner: session.partner,
+      user: session.user,
+      worldState: session.worldState,
+      currentChoices: session.currentChoices,
+      profileImageUrl: session.profileImageUrl,
     );
   }
 
@@ -504,8 +509,6 @@ class ChatNotifier extends _$ChatNotifier {
         innerThought: partnerResponse.innerThought,
         imageId: null, // Image added later
       );
-      await ref.read(currentSessionProvider(state.sessionId).notifier).addMessage(partnerMessage);
-
       await ref.read(currentSessionProvider(state.sessionId).notifier).addMessage(partnerMessage);
 
       // 1.b Scenario Director (Narration) for start

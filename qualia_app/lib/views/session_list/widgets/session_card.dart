@@ -1,29 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 
-import '../session_list_view.dart';
+import '../../../models/models.dart';
 
 /// Session card widget for displaying a session in the list
 class SessionCard extends StatelessWidget {
-  final SessionListItem session;
+  final Session session;
+  final VoidCallback? onTap;
 
-  const SessionCard({super.key, required this.session});
+  const SessionCard({
+    super.key,
+    required this.session,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final partner = session.partner;
+    // Use profile image if available, otherwise fall back to last chat image
+    final displayImageUrl = session.profileImageUrl ?? 
+                           (session.images.isNotEmpty ? session.images.last.url : null);
+    
+    // Find last conversation message (exclude narrator)
+    ChatMessage? lastConversationMessage;
+    try {
+      lastConversationMessage = session.messages.reversed.firstWhere(
+        (msg) => msg.type == MessageType.partner || msg.type == MessageType.user,
+      );
+    } catch (e) {
+      lastConversationMessage = null;
+    }
+    
+    final summary = lastConversationMessage?.dialogues?.join(' ') ?? 'No messages yet';
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () => context.push('/chat/${session.sessionId}'),
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
               // Partner Image
-              _buildPartnerImage(),
+              _buildPartnerImage(displayImageUrl),
               const SizedBox(width: 12),
               // Session Info
               Expanded(
@@ -34,13 +55,13 @@ class SessionCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          '${session.partnerName}, ${session.partnerAge}',
+                          '${partner.name}, ${partner.age}',
                           style:
                               Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
                         ),
-                        if (session.isNSFW) ...[
+                        if (partner.isNSFWAllowed) ...[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -48,7 +69,7 @@ class SessionCard extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.red.withAlpha(26),
+                              color: Colors.red.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
@@ -64,9 +85,9 @@ class SessionCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    // Last Memory Summary
+                    // Last Message Summary
                     Text(
-                      session.lastMemorySummary,
+                      summary,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -98,7 +119,7 @@ class SessionCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${session.turnCount} turns',
+                          '${session.worldState.turnCount} turns',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: Colors.grey[500],
@@ -121,7 +142,7 @@ class SessionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPartnerImage() {
+  Widget _buildPartnerImage(String? imageUrl) {
     return Container(
       width: 64,
       height: 64,
@@ -129,11 +150,11 @@ class SessionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         color: Colors.grey[200],
       ),
-      child: session.lastImageUrl != null
+      child: imageUrl != null
           ? ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: CachedNetworkImage(
-                imageUrl: session.lastImageUrl!,
+                imageUrl: imageUrl,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => const Center(
                   child: CircularProgressIndicator(strokeWidth: 2),

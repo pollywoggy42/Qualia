@@ -13,6 +13,9 @@ import '../../models/user_profile.dart';
 import '../../models/world_state.dart';
 import '../../models/models.dart';
 import '../../providers/session_provider.dart';
+import '../../providers/profile_image_generator_provider.dart';
+import '../../providers/comfyui_provider.dart';
+import '../../services/agents/profile_image_generator.dart';
 import '../../widgets/glass_card.dart';
 import 'widgets/preset_editor.dart';
 import 'widgets/partner_editor.dart';
@@ -39,6 +42,11 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
   PartnerProfile? _generatedPartner;
   ScenarioInfo? _scenarioInfo;
   String? _generationError;
+  
+  // Profile image generation state
+  String? _profileImageUrl;
+  bool _isGeneratingProfileImage = false;
+  String? _profileImageError;
 
   ComfyUIModelPreset? get _basePreset {
     if (_selectedPresetId == null) return null;
@@ -587,11 +595,18 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
         Expanded(
           child: PartnerEditor(
             profile: _generatedPartner!,
+            modelPreset: _customizedPreset,
             onChanged: (updated) {
               _generatedPartner = updated;
             },
+            onProfileImageGenerated: (imageUrl) {
+              setState(() {
+                _profileImageUrl = imageUrl;
+              });
+            },
           ),
         ),
+        // Profile Image Preview/Generation Section (removed - now in PartnerEditor)
         // Bottom buttons
         Container(
           padding: const EdgeInsets.all(16),
@@ -605,29 +620,39 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
               ),
             ],
           ),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    setState(() => _currentStep = 4);
-                    _generateScenario();
-                  },
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Reroll'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton.icon(
-                  onPressed: () => _createAndStartSession(),
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Start Story'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+              // Action buttons row (removed Generate Profile Image button - now in PartnerEditor)
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _currentStep = 3;
+                          _profileImageUrl = null;
+                          _profileImageError = null;
+                        });
+                        _generateScenario();
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reroll'),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _createAndStartSession(),
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('Start Story'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -635,6 +660,7 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
       ],
     );
   }
+
 
   Future<void> _generateScenario() async {
     setState(() {
@@ -706,7 +732,7 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
       emotionalAtmosphere: 'New Beginning',
     );
 
-    // 3. Create Session
+    // 3. Create Session (use generated profile image if available)
     final sessionId = const Uuid().v4();
     final session = Session(
       id: sessionId,
@@ -716,13 +742,14 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
       user: userProfile,
       worldState: worldState,
       modelPreset: _customizedPreset!,
+      profileImageUrl: _profileImageUrl, // Use manually generated profile image
       isNSFWEnabled: false, // Default
     );
 
     // 4. Save to Storage
     await ref.read(sessionListProvider.notifier).createSession(session);
 
-    // 5. Navigate
+    // 6. Navigate
     if (mounted) {
       context.go('/chat/$sessionId');
     }
