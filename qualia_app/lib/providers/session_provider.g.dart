@@ -326,7 +326,7 @@ final sessionListProvider =
 );
 
 typedef _$SessionList = AutoDisposeNotifier<List<Session>>;
-String _$currentSessionHash() => r'00ad8e14c28e2f80e2e372d5a37e0c6b864df007';
+String _$currentSessionHash() => r'd1df3cfa7fa801844b6cbe753cd09c5718bcedf9';
 
 abstract class _$CurrentSession extends BuildlessAutoDisposeNotifier<Session?> {
   late final String sessionId;

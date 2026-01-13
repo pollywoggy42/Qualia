@@ -25,15 +25,17 @@ class MessageBubble extends StatelessWidget {
     final hasDialogues = dialogues != null && dialogues!.isNotEmpty;
     final hasActions = actions != null && actions!.isNotEmpty;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: isPartner ? 0 : 60,
-        right: isPartner ? 60 : 0,
-      ),
-      child: Column(
-        crossAxisAlignment:
-            isPartner ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-        children: [
+    return Align(
+      alignment: isPartner ? Alignment.centerLeft : Alignment.centerRight,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: isPartner ? 0 : 60,
+          right: isPartner ? 60 : 0,
+        ),
+        child: Column(
+          crossAxisAlignment:
+              isPartner ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+          children: [
           // Actions - Contextual narration
           if (hasActions)
             Padding(
@@ -97,7 +99,8 @@ class MessageBubble extends StatelessWidget {
             ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildPartnerBubble(BuildContext context, String text, bool isDark) {

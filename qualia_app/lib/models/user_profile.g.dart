@@ -13,6 +13,7 @@ _$UserProfileImpl _$$UserProfileImplFromJson(Map<String, dynamic> json) =>
       gender: json['gender'] as String,
       occupation: json['occupation'] as String,
       location: json['location'] as String,
+      language: json['language'] as String? ?? 'Korean',
       face: VisualDescriptor.fromJson(json['face'] as Map<String, dynamic>),
       hairstyle:
           VisualDescriptor.fromJson(json['hairstyle'] as Map<String, dynamic>),
@@ -31,6 +32,7 @@ Map<String, dynamic> _$$UserProfileImplToJson(_$UserProfileImpl instance) =>
       'gender': instance.gender,
       'occupation': instance.occupation,
       'location': instance.location,
+      'language': instance.language,
       'face': instance.face,
       'hairstyle': instance.hairstyle,
       'body': instance.body,

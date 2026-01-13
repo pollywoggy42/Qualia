@@ -11,7 +11,11 @@ import '../services/agents/partner_agent.dart';
 import '../services/agents/strategist_agent.dart';
 import '../services/agents/input_interpreter_agent.dart';
 import '../services/comfyui_service.dart';
+import '../services/agents/input_interpreter_agent.dart';
+import '../services/comfyui_service.dart';
 import 'input_interpreter_provider.dart';
+import '../providers/scenario_generator_provider.dart'; // Added
+import '../services/agents/scenario_generator.dart'; // Added
 
 part 'chat_provider.g.dart';
 
@@ -188,8 +192,9 @@ class ChatNotifier extends _$ChatNotifier {
       final strategistAgent = ref.read(strategistAgentProvider);
       final comfyService = ref.read(comfyUIServiceProvider);
       final storage = ref.read(storageServiceProvider);
+      final scenarioGenerator = ref.read(scenarioGeneratorAgentProvider); // Changed to Agent provider
 
-      if (partnerAgent == null || visualAgent == null || strategistAgent == null) {
+      if (partnerAgent == null || visualAgent == null || strategistAgent == null || scenarioGenerator == null) {
         throw Exception('Agents not initialized');
       }
 
@@ -228,6 +233,7 @@ class ChatNotifier extends _$ChatNotifier {
           sdxlTags: choice.sdxlTags ?? '',
         ),
         scenarioNarration: '',
+        language: user.language, // Added
       );
       
       // Update partner state (emotional)
@@ -273,6 +279,32 @@ class ChatNotifier extends _$ChatNotifier {
         imageId: null, // Image added later
       );
       await ref.read(currentSessionProvider(state.sessionId).notifier).addMessage(partnerMessage);
+
+
+
+      // 2.b Generate Narration (Scenario Director)
+      // We generate this in parallel with image/strategist to save time, or here to show immediate feedback?
+      // User reported it's "not showing", so we must ensure we generate and add it.
+      try {
+        final narrationParam = await scenarioGenerator.generateNarration(
+          userAction: choice.action ?? userMessage.actions?.join(', ') ?? '',
+          partnerAction: partnerResponse.actions.join(', '),
+          currentSituation: worldState.emotionalAtmosphere,
+          language: user.language,
+        );
+
+        if (narrationParam.isNotEmpty) {
+           final narratorMessage = ChatMessage(
+            id: const Uuid().v4(),
+            timestamp: DateTime.now(),
+            type: MessageType.narrator,
+            narration: narrationParam,
+          );
+          await ref.read(currentSessionProvider(state.sessionId).notifier).addMessage(narratorMessage);
+        }
+      } catch (e) {
+        print('Narrator generation failed: $e');
+      }
 
       // 3. Visual Director Agent
       final visualResponse = await visualAgent.generate(VisualDirectorInput(
@@ -342,9 +374,9 @@ class ChatNotifier extends _$ChatNotifier {
            partnerMessage = partnerMessage.copyWith(imageId: generatedImageId);
            await ref.read(currentSessionProvider(state.sessionId).notifier).updateMessage(partnerMessage);
         }
-      } catch (e) {
-        print('Image generation failed: $e');
-        // Continue even if image fails
+      } catch (e, st) {
+        print('Image generation failed: $e\n$st');
+        // Continue even if image fails, but maybe log it visible for debugging?
       }
       
       state = state.copyWith(
@@ -358,7 +390,8 @@ class ChatNotifier extends _$ChatNotifier {
         user: user, 
         worldState: worldState, 
         partnerLastResponse: partnerResponse, 
-        history: ref.read(sessionMessagesProvider(state.sessionId))
+        history: ref.read(sessionMessagesProvider(state.sessionId)),
+        language: user.language, // Added
       ));
 
       // 6. Complete
@@ -400,8 +433,9 @@ class ChatNotifier extends _$ChatNotifier {
       final visualAgent = ref.read(visualDirectorAgentProvider);
       final strategistAgent = ref.read(strategistAgentProvider);
       final comfyService = ref.read(comfyUIServiceProvider);
+      final scenarioGenerator = ref.read(scenarioGeneratorAgentProvider); // Changed to Agent provider
 
-      if (partnerAgent == null || visualAgent == null || strategistAgent == null) {
+      if (partnerAgent == null || visualAgent == null || strategistAgent == null || scenarioGenerator == null) {
         throw Exception('Agents not initialized');
       }
 
@@ -428,6 +462,7 @@ class ChatNotifier extends _$ChatNotifier {
           sdxlTags: '',
         ),
         scenarioNarration: 'The story begins. The partner initiates the conversation.', 
+        language: user!.language, // User is checked above but let's be safe
       );
       
       // Update emotional state
@@ -470,6 +505,32 @@ class ChatNotifier extends _$ChatNotifier {
         imageId: null, // Image added later
       );
       await ref.read(currentSessionProvider(state.sessionId).notifier).addMessage(partnerMessage);
+
+      await ref.read(currentSessionProvider(state.sessionId).notifier).addMessage(partnerMessage);
+
+      // 1.b Scenario Director (Narration) for start
+      try {
+         // Narrative for start
+         // We don't have user action, so we pass empty or "Start"
+         final narrationParam = await scenarioGenerator.generateNarration(
+          userAction: 'Thinking about ${partner.name}...',
+          partnerAction: partnerResponse.actions.join(', '),
+          currentSituation: worldState.emotionalAtmosphere,
+          language: user!.language,
+        );
+
+        if (narrationParam.isNotEmpty) {
+           final narratorMessage = ChatMessage(
+            id: const Uuid().v4(),
+            timestamp: DateTime.now(),
+            type: MessageType.narrator,
+            narration: narrationParam,
+          );
+          await ref.read(currentSessionProvider(state.sessionId).notifier).addMessage(narratorMessage);
+        }
+      } catch (e) {
+        print('Start narration failed: $e');
+      }
 
       // 2. Visual Director
       final visualResponse = await visualAgent.generate(VisualDirectorInput(
@@ -553,6 +614,7 @@ class ChatNotifier extends _$ChatNotifier {
         worldState: worldState, 
         partnerLastResponse: partnerResponse, 
         history: [partnerMessage], 
+        language: user!.language,
       ));
 
       // 6. Complete
@@ -620,6 +682,7 @@ class ChatNotifier extends _$ChatNotifier {
         worldState: worldState, 
         partnerLastResponse: partnerLastResponse, 
         history: messages,
+        language: user.language,
       ));
 
       if (strategistResponse == null) throw Exception('Strategist failed to generate');

@@ -80,73 +80,144 @@ class ComfyUIService {
       seed: seed ?? _generateRandomSeed(),
     );
 
-    // Queue the prompt
-    final body = jsonEncode({
-      'prompt': workflow,
-      'client_id': clientId,
-    });
+    // Connect to WebSocket FIRST to ensure we don't miss any messages
+    final wsCompleter = Completer<void>();
+    WebSocketChannel? channel;
     
-    print('----------------------------------------');
-    print('🚀 Sending ComfyUI Request');
-    print('URL: $_baseUrl/prompt');
-    print('Payload: $body');
-    print('----------------------------------------');
+    try {
+      // Connect specifically with our Client ID so the server sends us the events
+      channel = WebSocketChannel.connect(Uri.parse('$_wsUrl?clientId=$clientId'));
+      
+      // Temporary variable to store promptId once we get it
+      String? targetPromptId;
+      
+      channel.stream.listen(
+        (message) {
+          if (targetPromptId == null) return; // Ignore messages until we know our ID
+          
+          try {
+            final data = jsonDecode(message as String) as Map<String, dynamic>;
+            final type = data['type'] as String?;
+            final messageData = data['data'] as Map<String, dynamic>?;
 
-    final promptResponse = await _client.post(
-      Uri.parse('$_baseUrl/prompt'),
-      headers: {'Content-Type': 'application/json'},
-      body: body,
-    );
+            // Check if this message is for our prompt
+            // Note: Some global messages might not have prompt_id, but execution/progress usually do
+            final msgPromptId = messageData?['prompt_id'] as String?;
+            
+            // If message has specific prompt_id, verify it matches
+            if (msgPromptId != null && msgPromptId != targetPromptId) return;
 
-    print('Response Code: ${promptResponse.statusCode}');
-    print('Response Body: ${promptResponse.body}');
+            if (type == 'progress') {
+              final value = messageData?['value'] as int? ?? 0;
+              final max = messageData?['max'] as int? ?? 100;
+              _progressController?.add(ComfyUIProgress(
+                type: ProgressType.generating,
+                current: value,
+                total: max,
+              ));
+            } else if (type == 'executing') {
+              final nodeId = messageData?['node'] as String?;
+              if (nodeId == null) {
+                // Execution complete (node is null)
+                if (!wsCompleter.isCompleted) {
+                  wsCompleter.complete();
+                }
+              }
+            } else if (type == 'execution_error') {
+               if (!wsCompleter.isCompleted) {
+                 wsCompleter.completeError(
+                   ComfyUIException('Execution error: ${messageData}'),
+                 );
+               }
+            }
+          } catch (e) {
+            print('Error parsing WS message: $e');
+          }
+        },
+        onError: (error) {
+          if (!wsCompleter.isCompleted) {
+             // Don't fail immediately on WS error if we haven't started? 
+             // But connection error is fatal.
+             wsCompleter.completeError(error);
+          }
+        },
+      );
 
-    if (promptResponse.statusCode != 200) {
-      throw ComfyUIException('Failed to queue prompt: ${promptResponse.statusCode}');
-    }
+      // Queue the prompt
+      final body = jsonEncode({
+        'prompt': workflow,
+        'client_id': clientId,
+      });
+      
+      print('----------------------------------------');
+      print('🚀 Sending ComfyUI Request');
+      print('URL: $_baseUrl/prompt');
+      print('Payload: $body');
+      print('----------------------------------------');
 
-    final promptJson = jsonDecode(promptResponse.body) as Map<String, dynamic>;
-    final promptId = promptJson['prompt_id'] as String;
+      final promptResponse = await _client.post(
+        Uri.parse('$_baseUrl/prompt'),
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      );
 
-    // Wait for completion
-    await _waitForCompletion(promptId);
+      print('Response Code: ${promptResponse.statusCode}');
+      print('Response Body: ${promptResponse.body}');
 
-    // Get the generated image
-    final historyResponse = await _client.get(
-      Uri.parse('$_baseUrl/history/$promptId'),
-    );
-
-    if (historyResponse.statusCode != 200) {
-      throw ComfyUIException('Failed to get history: ${historyResponse.statusCode}');
-    }
-
-    final historyJson = jsonDecode(historyResponse.body) as Map<String, dynamic>;
-    final outputs = historyJson[promptId]?['outputs'] as Map<String, dynamic>?;
-
-    if (outputs == null || outputs.isEmpty) {
-      throw ComfyUIException('No outputs found');
-    }
-
-    // Find the image output node
-    String? imageFilename;
-    for (final output in outputs.values) {
-      final images = (output as Map<String, dynamic>)['images'] as List?;
-      if (images != null && images.isNotEmpty) {
-        final firstImage = images.first as Map<String, dynamic>;
-        imageFilename = firstImage['filename'] as String?;
-        break;
+      if (promptResponse.statusCode != 200) {
+        throw ComfyUIException('Failed to queue prompt: ${promptResponse.statusCode}');
       }
-    }
 
-    if (imageFilename == null) {
-      throw ComfyUIException('No image found in outputs');
-    }
+      final promptJson = jsonDecode(promptResponse.body) as Map<String, dynamic>;
+      targetPromptId = promptJson['prompt_id'] as String;
 
-    return GeneratedImageResult(
-      filename: imageFilename,
-      imageUrl: '$_baseUrl/view?filename=$imageFilename',
-      promptId: promptId,
-    );
+      // Wait for completion with timeout
+      await wsCompleter.future.timeout(
+        const Duration(seconds: 300),
+        onTimeout: () {
+          throw ComfyUIException('Image generation timed out');
+        },
+      );
+
+      // Get the generated image
+      final historyResponse = await _client.get(
+        Uri.parse('$_baseUrl/history/$targetPromptId'),
+      );
+
+      if (historyResponse.statusCode != 200) {
+        throw ComfyUIException('Failed to get history: ${historyResponse.statusCode}');
+      }
+
+      final historyJson = jsonDecode(historyResponse.body) as Map<String, dynamic>;
+      final outputs = historyJson[targetPromptId]?['outputs'] as Map<String, dynamic>?;
+
+      if (outputs == null || outputs.isEmpty) {
+        throw ComfyUIException('No outputs found');
+      }
+
+      // Find the image output node
+      String? imageFilename;
+      for (final output in outputs.values) {
+        final images = (output as Map<String, dynamic>)['images'] as List?;
+        if (images != null && images.isNotEmpty) {
+          final firstImage = images.first as Map<String, dynamic>;
+          imageFilename = firstImage['filename'] as String?;
+          break;
+        }
+      }
+
+      if (imageFilename == null) {
+        throw ComfyUIException('No image found in outputs');
+      }
+
+      return GeneratedImageResult(
+        filename: imageFilename,
+        imageUrl: '$_baseUrl/view?filename=$imageFilename',
+        promptId: targetPromptId,
+      );
+    } finally {
+      await channel?.sink.close();
+    }
   }
 
   /// 진행 상황 스트림
@@ -155,61 +226,7 @@ class ComfyUIService {
     return _progressController!.stream;
   }
 
-  /// WebSocket 연결로 진행 상황 모니터링
-  Future<void> _waitForCompletion(String promptId) async {
-    final completer = Completer<void>();
-
-    try {
-      _wsChannel = WebSocketChannel.connect(Uri.parse(_wsUrl));
-
-      _wsChannel!.stream.listen(
-        (message) {
-          final data = jsonDecode(message as String) as Map<String, dynamic>;
-          final type = data['type'] as String?;
-
-          if (type == 'progress') {
-            final value = data['data']?['value'] as int? ?? 0;
-            final max = data['data']?['max'] as int? ?? 100;
-            _progressController?.add(ComfyUIProgress(
-              type: ProgressType.generating,
-              current: value,
-              total: max,
-            ));
-          } else if (type == 'executing') {
-            final nodeId = data['data']?['node'] as String?;
-            if (nodeId == null) {
-              // Execution complete
-              if (!completer.isCompleted) {
-                completer.complete();
-              }
-            }
-          } else if (type == 'execution_error') {
-            if (!completer.isCompleted) {
-              completer.completeError(
-                ComfyUIException('Execution error: ${data['data']}'),
-              );
-            }
-          }
-        },
-        onError: (error) {
-          if (!completer.isCompleted) {
-            completer.completeError(error);
-          }
-        },
-      );
-
-      // Timeout after 60 seconds
-      await completer.future.timeout(
-        const Duration(seconds: 60),
-        onTimeout: () {
-          throw ComfyUIException('Image generation timed out');
-        },
-      );
-    } finally {
-      await _wsChannel?.sink.close();
-      _wsChannel = null;
-    }
-  }
+  // _waitForCompletion removed as it is now inline
 
   /// 워크플로우 빌드
   Map<String, dynamic> _buildWorkflow({
@@ -257,8 +274,8 @@ class ComfyUIService {
           'seed': seed,
           'steps': modelPreset.steps,
           'cfg': modelPreset.cfgScale,
-          'sampler_name': modelPreset.sampler.toLowerCase().replaceAll(' ', '_'),
-          'scheduler': modelPreset.scheduler,
+          'sampler_name': _mapSamplerName(modelPreset.sampler),
+          'scheduler': modelPreset.scheduler.toLowerCase(),
           'denoise': 1.0,
           'model': ['1', 0],
           'positive': ['2', 0],
@@ -296,6 +313,49 @@ class ComfyUIService {
 
   int _generateRandomSeed() {
     return DateTime.now().millisecondsSinceEpoch % 2147483647;
+  }
+
+  /// Map display sampler name to ComfyUI internal name
+  String _mapSamplerName(String sampler) {
+    final lower = sampler.toLowerCase().replaceAll('_', ' '); // Normalize
+    
+    // Euler variants
+    if (lower == 'euler a' || lower == 'euler ancestral') return 'euler_ancestral';
+    if (lower == 'euler') return 'euler';
+    
+    // DPM++ variants
+    if (lower.contains('dpm++')) {
+      // Handle "DPM++ 2M Karras" etc.
+      String base = lower;
+      if (base.contains('2m')) {
+        if (base.contains('sde')) {
+          return 'dpmpp_2m_sde';
+        }
+        return 'dpmpp_2m';
+      }
+      if (base.contains('sde')) return 'dpmpp_sde';
+      if (base.contains('2s')) return 'dpmpp_2s_ancestral';
+    }
+    
+    // Fallback: try basic snake_case conversion
+    // e.g. "DPM++ 2M Karras" -> "dpm++_2m_karras" (invalid)
+    // So we need to be careful.
+    
+    // If not matched above, basic sanitization
+    var clean = sampler.toLowerCase();
+    
+    // Fix common replacements if not caught above
+    clean = clean.replaceAll('dpm++', 'dpmpp');
+    clean = clean.replaceAll(' ', '_');
+    
+    // Remove "karras" or "exponential" from sampler name if present (usually scheduler)
+    // But some presets might have it in the string.
+    // The scheduler is passed accurately in the 'scheduler' field usually.
+    // But let's strip it just in case.
+    clean = clean.replaceAll('_karras', '');
+    clean = clean.replaceAll('_exponential', '');
+    
+    return clean;
   }
 
   void dispose() {

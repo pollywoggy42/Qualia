@@ -25,7 +25,8 @@ mixin _$UserProfile {
   int get age => throw _privateConstructorUsedError;
   String get gender => throw _privateConstructorUsedError;
   String get occupation => throw _privateConstructorUsedError;
-  String get location =>
+  String get location => throw _privateConstructorUsedError;
+  String get language =>
       throw _privateConstructorUsedError; // Visual Appearance
   VisualDescriptor get face => throw _privateConstructorUsedError;
   VisualDescriptor get hairstyle => throw _privateConstructorUsedError;
@@ -53,6 +54,7 @@ abstract class $UserProfileCopyWith<$Res> {
       String gender,
       String occupation,
       String location,
+      String language,
       VisualDescriptor face,
       VisualDescriptor hairstyle,
       VisualDescriptor body,
@@ -86,6 +88,7 @@ class _$UserProfileCopyWithImpl<$Res, $Val extends UserProfile>
     Object? gender = null,
     Object? occupation = null,
     Object? location = null,
+    Object? language = null,
     Object? face = null,
     Object? hairstyle = null,
     Object? body = null,
@@ -113,6 +116,10 @@ class _$UserProfileCopyWithImpl<$Res, $Val extends UserProfile>
       location: null == location
           ? _value.location
           : location // ignore: cast_nullable_to_non_nullable
+              as String,
+      language: null == language
+          ? _value.language
+          : language // ignore: cast_nullable_to_non_nullable
               as String,
       face: null == face
           ? _value.face
@@ -204,6 +211,7 @@ abstract class _$$UserProfileImplCopyWith<$Res>
       String gender,
       String occupation,
       String location,
+      String language,
       VisualDescriptor face,
       VisualDescriptor hairstyle,
       VisualDescriptor body,
@@ -241,6 +249,7 @@ class __$$UserProfileImplCopyWithImpl<$Res>
     Object? gender = null,
     Object? occupation = null,
     Object? location = null,
+    Object? language = null,
     Object? face = null,
     Object? hairstyle = null,
     Object? body = null,
@@ -268,6 +277,10 @@ class __$$UserProfileImplCopyWithImpl<$Res>
       location: null == location
           ? _value.location
           : location // ignore: cast_nullable_to_non_nullable
+              as String,
+      language: null == language
+          ? _value.language
+          : language // ignore: cast_nullable_to_non_nullable
               as String,
       face: null == face
           ? _value.face
@@ -306,6 +319,7 @@ class _$UserProfileImpl implements _UserProfile {
       required this.gender,
       required this.occupation,
       required this.location,
+      this.language = 'Korean',
       required this.face,
       required this.hairstyle,
       required this.body,
@@ -327,6 +341,9 @@ class _$UserProfileImpl implements _UserProfile {
   final String occupation;
   @override
   final String location;
+  @override
+  @JsonKey()
+  final String language;
 // Visual Appearance
   @override
   final VisualDescriptor face;
@@ -344,7 +361,7 @@ class _$UserProfileImpl implements _UserProfile {
 
   @override
   String toString() {
-    return 'UserProfile(name: $name, age: $age, gender: $gender, occupation: $occupation, location: $location, face: $face, hairstyle: $hairstyle, body: $body, accessories: $accessories, outfit: $outfit, personality: $personality)';
+    return 'UserProfile(name: $name, age: $age, gender: $gender, occupation: $occupation, location: $location, language: $language, face: $face, hairstyle: $hairstyle, body: $body, accessories: $accessories, outfit: $outfit, personality: $personality)';
   }
 
   @override
@@ -359,6 +376,8 @@ class _$UserProfileImpl implements _UserProfile {
                 other.occupation == occupation) &&
             (identical(other.location, location) ||
                 other.location == location) &&
+            (identical(other.language, language) ||
+                other.language == language) &&
             (identical(other.face, face) || other.face == face) &&
             (identical(other.hairstyle, hairstyle) ||
                 other.hairstyle == hairstyle) &&
@@ -372,8 +391,20 @@ class _$UserProfileImpl implements _UserProfile {
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(runtimeType, name, age, gender, occupation,
-      location, face, hairstyle, body, accessories, outfit, personality);
+  int get hashCode => Object.hash(
+      runtimeType,
+      name,
+      age,
+      gender,
+      occupation,
+      location,
+      language,
+      face,
+      hairstyle,
+      body,
+      accessories,
+      outfit,
+      personality);
 
   @JsonKey(ignore: true)
   @override
@@ -396,6 +427,7 @@ abstract class _UserProfile implements UserProfile {
       required final String gender,
       required final String occupation,
       required final String location,
+      final String language,
       required final VisualDescriptor face,
       required final VisualDescriptor hairstyle,
       required final VisualDescriptor body,
@@ -416,6 +448,8 @@ abstract class _UserProfile implements UserProfile {
   String get occupation;
   @override
   String get location;
+  @override
+  String get language;
   @override // Visual Appearance
   VisualDescriptor get face;
   @override

@@ -37,6 +37,7 @@ class PartnerAgent {
     required List<session.ChatMessage> history, // Recent 5 turns
     required PartnerAgentInput userInput,
     required String scenarioNarration,
+    required String language,
   }) async {
     final prompt = _buildPrompt(
       user: user,
@@ -45,6 +46,7 @@ class PartnerAgent {
       history: history,
       userInput: userInput,
       scenarioNarration: scenarioNarration,
+      language: language,
     );
 
     final response = await _openRouterService.chatCompletion(
@@ -67,9 +69,14 @@ class PartnerAgent {
     required List<session.ChatMessage> history,
     required PartnerAgentInput userInput,
     required String scenarioNarration,
+    required String language,
   }) {
     return '''
 You are roleplaying as ${partner.name}, a ${partner.age}-year-old ${partner.occupation}.
+
+# LANGUAGE INSTRUCTION
+**IMPORTANT**: You MUST respond in $language.
+
 
 # YOUR CHARACTER
 

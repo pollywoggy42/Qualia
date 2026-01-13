@@ -25,12 +25,14 @@ class ScenarioGeneratorAgent {
     required String partnerGender,
     String? theme,
     String? setting,
+    String language = 'Korean',
   }) async {
     final prompt = _buildPrompt(
       userGender: userGender,
       partnerGender: partnerGender,
       theme: theme,
       setting: setting,
+      language: language,
     );
 
     final response = await _openRouterService.chatCompletion(
@@ -47,14 +49,46 @@ class ScenarioGeneratorAgent {
     return _parseResponse(response.content);
   }
 
+  /// 상황 설명 생성 (Narrator)
+  Future<String> generateNarration({
+    required String userAction,
+    required String partnerAction,
+    required String currentSituation,
+    required String language,
+  }) async {
+    final prompt = '''
+Generate a short, atmospheric narration describing the scene based on the actions.
+Language: $language
+
+User Action: $userAction
+Partner Action: $partnerAction
+Current Situation: $currentSituation
+
+Output: A single paragraph of narration (1-2 sentences) setting the mood. Do not include character dialogue.
+''';
+
+    final response = await _openRouterService.chatCompletion(
+      model: _settings.model,
+      messages: [ChatMessage.user(prompt)],
+      temperature: 0.7,
+      maxTokens: 100,
+    );
+
+    return response.content.trim();
+  }
+
   String _buildPrompt({
     required String userGender,
     required String partnerGender,
     String? theme,
     String? setting,
+    required String language,
   }) {
     return '''
 Generate a romantic scenario and partner profile with the following requirements:
+
+**Language**: $language (ALL content must be in this language)
+
 
 **User Profile:**
 - Gender: $userGender

@@ -12,6 +12,7 @@ class StrategistAgentInput {
   final WorldState worldState;
   final PartnerResponse partnerLastResponse;
   final List<session.ChatMessage> history;
+  final String language;
 
   StrategistAgentInput({
     required this.partner,
@@ -19,6 +20,7 @@ class StrategistAgentInput {
     required this.worldState,
     required this.partnerLastResponse,
     required this.history,
+    this.language = 'Korean',
   });
 }
 
@@ -76,6 +78,7 @@ class StrategistAgent {
 
     return '''
 You are a Strategist for a romantic visual novel.
+Language: ${input.language}
 
 # Partner Information
 Name: ${p.name}, ${p.age}, ${p.occupation}
@@ -137,6 +140,7 @@ ELSE: Creative/unexpected option
 - Keep it romantic and wholesome
 - Seductive/alluring is OK, but not explicit
 - Use Danbooru tag format (lowercase, underscores)
+- ACTIONS and SPEECH must be in ${input.language}
 ''';
   }
 
@@ -149,6 +153,7 @@ ELSE: Creative/unexpected option
 
     return '''
 You are a Strategist for an adult romantic visual novel.
+Language: ${input.language}
 
 # Partner Information
 Name: ${p.name}, ${p.age}, ${p.occupation}
@@ -214,6 +219,7 @@ ELSE: Creative interaction
 # Important
 - Use exact tags from POSITION & ACT REFERENCE
 - Maintain emotional authenticity even in explicit scenes
+- ACTIONS and SPEECH must be in ${input.language}
 ''';
   }
 

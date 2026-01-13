@@ -13,7 +13,7 @@ class NarratorBlock extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 40),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
       child: Column(
         children: [

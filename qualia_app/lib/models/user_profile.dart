@@ -16,6 +16,7 @@ class UserProfile with _$UserProfile {
     required String gender,
     required String occupation,
     required String location,
+    @Default('Korean') String language,
 
     // Visual Appearance
     required VisualDescriptor face,
