@@ -1,32 +1,13 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'settings_provider.dart';
+part of 'agent_settings_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$allAgentSettingsHash() => r'b99943a6a50d354e709303e2c233c99e794eaa73';
-
-/// 모든 Agent 설정
-///
-/// Copied from [allAgentSettings].
-@ProviderFor(allAgentSettings)
-final allAgentSettingsProvider =
-    AutoDisposeProvider<Map<String, AgentSettings>>.internal(
-  allAgentSettings,
-  name: r'allAgentSettingsProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$allAgentSettingsHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-typedef AllAgentSettingsRef
-    = AutoDisposeProviderRef<Map<String, AgentSettings>>;
 String _$agentSettingsNotifierHash() =>
-    r'1a38df7384abd13564c20c0e8f83374904d5dfbb';
+    r'1676d78cb1854b7be75323d1c333d8c742284e18';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -58,22 +39,26 @@ abstract class _$AgentSettingsNotifier
   );
 }
 
-/// Agent 설정 Provider
+/// Agent Settings Provider Family
+/// 각 에이전트별 설정을 관리하는 프로바이더
 ///
 /// Copied from [AgentSettingsNotifier].
 @ProviderFor(AgentSettingsNotifier)
 const agentSettingsNotifierProvider = AgentSettingsNotifierFamily();
 
-/// Agent 설정 Provider
+/// Agent Settings Provider Family
+/// 각 에이전트별 설정을 관리하는 프로바이더
 ///
 /// Copied from [AgentSettingsNotifier].
 class AgentSettingsNotifierFamily extends Family<AgentSettings> {
-  /// Agent 설정 Provider
+  /// Agent Settings Provider Family
+  /// 각 에이전트별 설정을 관리하는 프로바이더
   ///
   /// Copied from [AgentSettingsNotifier].
   const AgentSettingsNotifierFamily();
 
-  /// Agent 설정 Provider
+  /// Agent Settings Provider Family
+  /// 각 에이전트별 설정을 관리하는 프로바이더
   ///
   /// Copied from [AgentSettingsNotifier].
   AgentSettingsNotifierProvider call(
@@ -108,12 +93,14 @@ class AgentSettingsNotifierFamily extends Family<AgentSettings> {
   String? get name => r'agentSettingsNotifierProvider';
 }
 
-/// Agent 설정 Provider
+/// Agent Settings Provider Family
+/// 각 에이전트별 설정을 관리하는 프로바이더
 ///
 /// Copied from [AgentSettingsNotifier].
 class AgentSettingsNotifierProvider extends AutoDisposeNotifierProviderImpl<
     AgentSettingsNotifier, AgentSettings> {
-  /// Agent 설정 Provider
+  /// Agent Settings Provider Family
+  /// 각 에이전트별 설정을 관리하는 프로바이더
   ///
   /// Copied from [AgentSettingsNotifier].
   AgentSettingsNotifierProvider(

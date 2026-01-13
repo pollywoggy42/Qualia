@@ -37,10 +37,15 @@ class OpenRouterAuth extends _$OpenRouterAuth {
     final storage = ref.read(storageServiceProvider);
     await storage.setOpenRouterApiKey(apiKey);
 
-    // Verify the key
+    ref.invalidate(openRouterServiceProvider);
     ref.invalidateSelf();
-    final result = await future;
-    return result != null;
+
+    try {
+      final result = await future;
+      return result != null;
+    } catch (e) {
+      return false;
+    }
   }
 }
 
@@ -51,8 +56,33 @@ Future<List<ModelInfo>> availableModels(AvailableModelsRef ref) async {
   if (service == null) return [];
 
   try {
-    return await service.getModels();
+    final models = await service.getModels();
+    // Sort by name alphabetically
+    models.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return models;
   } catch (e) {
     return [];
+  }
+}
+
+/// 크레딧 잔액 정보
+@riverpod
+class OpenRouterCredits extends _$OpenRouterCredits {
+  @override
+  Future<CreditBalance?> build() async {
+    final service = ref.watch(openRouterServiceProvider);
+    if (service == null) return null;
+
+    try {
+      return await service.getCreditBalance();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// 크레딧 정보 새로고침
+  Future<void> refresh() async {
+    ref.invalidateSelf();
+    await future;
   }
 }

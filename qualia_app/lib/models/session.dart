@@ -83,17 +83,4 @@ class GeneratedImage with _$GeneratedImage {
       _$GeneratedImageFromJson(json);
 }
 
-/// Strategy Choice - 전략 선택지
-@freezed
-class StrategyChoice with _$StrategyChoice {
-  const factory StrategyChoice({
-    required String action,
-    String? speech,
-    required int successRate,
-    required String reasoning,
-    @Default(false) bool isSpecial,
-  }) = _StrategyChoice;
 
-  factory StrategyChoice.fromJson(Map<String, dynamic> json) =>
-      _$StrategyChoiceFromJson(json);
-}

@@ -91,22 +91,3 @@ Map<String, dynamic> _$$GeneratedImageImplToJson(
       'prompt': instance.prompt,
       'createdAt': instance.createdAt.toIso8601String(),
     };
-
-_$StrategyChoiceImpl _$$StrategyChoiceImplFromJson(Map<String, dynamic> json) =>
-    _$StrategyChoiceImpl(
-      action: json['action'] as String,
-      speech: json['speech'] as String?,
-      successRate: (json['successRate'] as num).toInt(),
-      reasoning: json['reasoning'] as String,
-      isSpecial: json['isSpecial'] as bool? ?? false,
-    );
-
-Map<String, dynamic> _$$StrategyChoiceImplToJson(
-        _$StrategyChoiceImpl instance) =>
-    <String, dynamic>{
-      'action': instance.action,
-      'speech': instance.speech,
-      'successRate': instance.successRate,
-      'reasoning': instance.reasoning,
-      'isSpecial': instance.isSpecial,
-    };

@@ -11,7 +11,7 @@ StorageService storageService(StorageServiceRef ref) {
 }
 
 /// Storage 초기화 상태
-@riverpod
+@Riverpod(keepAlive: true)
 class StorageInitialized extends _$StorageInitialized {
   @override
   Future<bool> build() async {

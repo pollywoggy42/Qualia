@@ -30,10 +30,19 @@ class ComfyUIService {
     try {
       final response = await _client.get(
         Uri.parse('$_baseUrl/system_stats'),
-      ).timeout(const Duration(seconds: 5));
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Connection timed out after 10 seconds');
+        },
+      );
 
       return response.statusCode == 200;
+    } on TimeoutException catch (e) {
+      print('❌ ComfyUI Connection Timeout: $e');
+      rethrow;
     } catch (e) {
+      print('❌ ComfyUI Connection Error: $e');
       return false;
     }
   }

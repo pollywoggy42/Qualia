@@ -101,7 +101,9 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
       case 4:
         return _buildResultScreen();
       default:
-        return const SizedBox.shrink();
+        return Center(
+          child: Text('Error: Unknown step $_currentStep'),
+        );
     }
   }
 
@@ -652,14 +654,14 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
           setState(() {
             _generatedPartner = result.partner;
             _scenarioInfo = result.scenario;
-            _currentStep = 5;
+            _currentStep = 4;
           });
         } else {
           // Fallback to sample data if generation fails
           setState(() {
             _generatedPartner = generateSamplePartner(gender: partnerGender);
             _scenarioInfo = null;
-            _currentStep = 5;
+            _currentStep = 4;
           });
         }
       }
@@ -670,7 +672,7 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
           _generatedPartner = generateSamplePartner(gender: partnerGender);
           _scenarioInfo = null;
           _generationError = e.toString();
-          _currentStep = 5;
+          _currentStep = 4;
         });
       }
     }

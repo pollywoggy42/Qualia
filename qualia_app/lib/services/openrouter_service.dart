@@ -95,6 +95,26 @@ class OpenRouterService {
     return AccountInfo.fromJson(json['data'] as Map<String, dynamic>);
   }
 
+  /// 크레딧 잔액 상세 조회
+  Future<CreditBalance> getCreditBalance() async {
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/credits'),
+      headers: {
+        'Authorization': 'Bearer $_apiKey',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw OpenRouterException(
+        'Failed to get credit balance: ${response.statusCode}',
+        response.body,
+      );
+    }
+
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    return CreditBalance.fromJson(json);
+  }
+
   /// 사용 가능한 모델 목록 조회
   Future<List<ModelInfo>> getModels() async {
     final response = await _client.get(
@@ -189,20 +209,50 @@ class Usage {
 /// Account Info
 class AccountInfo {
   final String label;
-  final double creditBalance;
-  final int rateLimit;
+  final double usage;
+  final double? limit;
+  final bool isFreeTier;
+
+  double? get creditBalance => limit != null ? limit! - usage : null;
 
   AccountInfo({
     required this.label,
-    required this.creditBalance,
-    required this.rateLimit,
+    required this.usage,
+    this.limit,
+    required this.isFreeTier,
   });
 
   factory AccountInfo.fromJson(Map<String, dynamic> json) {
     return AccountInfo(
       label: json['label'] as String? ?? '',
-      creditBalance: (json['limit'] as num?)?.toDouble() ?? 0.0,
-      rateLimit: json['rate_limit'] as int? ?? 0,
+      usage: (json['usage'] as num?)?.toDouble() ?? 0.0,
+      limit: (json['limit'] as num?)?.toDouble(),
+      isFreeTier: json['is_free_tier'] as bool? ?? true,
+    );
+  }
+}
+
+/// Credit Balance - Detailed credit information
+class CreditBalance {
+  final double totalGranted;
+  final double totalUsed;
+  final double totalRemaining;
+
+  CreditBalance({
+    required this.totalGranted,
+    required this.totalUsed,
+    required this.totalRemaining,
+  });
+
+  factory CreditBalance.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>?;
+    final totalCredits = (data?['total_credits'] as num?)?.toDouble() ?? 0.0;
+    final totalUsage = (data?['total_usage'] as num?)?.toDouble() ?? 0.0;
+    
+    return CreditBalance(
+      totalGranted: totalCredits,
+      totalUsed: totalUsage,
+      totalRemaining: totalCredits - totalUsage,
     );
   }
 }

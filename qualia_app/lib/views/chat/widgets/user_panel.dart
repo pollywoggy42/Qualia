@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../../models/models.dart';
 import '../../../config/theme.dart';
 
 /// User Panel - Shows loading states, choices, and current action
@@ -254,7 +255,7 @@ class _ChoiceItem extends StatelessWidget {
 
                 // Action text
                 Text(
-                  choice.action,
+                  choice.action ?? 'Action',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
@@ -309,7 +310,7 @@ class _ChoiceItem extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        choice.reasoning,
+                        choice.reasoning ?? '',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey[500],
@@ -340,19 +341,4 @@ class _ChoiceItem extends StatelessWidget {
   }
 }
 
-/// Strategy choice data class
-class StrategyChoice {
-  final String action;
-  final String? speech;
-  final int successRate;
-  final String reasoning;
-  final bool isSpecial;
 
-  const StrategyChoice({
-    required this.action,
-    this.speech,
-    required this.successRate,
-    required this.reasoning,
-    this.isSpecial = false,
-  });
-}

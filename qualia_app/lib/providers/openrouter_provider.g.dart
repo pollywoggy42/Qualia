@@ -42,7 +42,7 @@ final availableModelsProvider =
 );
 
 typedef AvailableModelsRef = AutoDisposeFutureProviderRef<List<ModelInfo>>;
-String _$openRouterAuthHash() => r'fb7c28e82e862bde8c9e7c5185366ce066e856b1';
+String _$openRouterAuthHash() => r'58dea2e921afa4757ea0935eac6d0a01f89b4d81';
 
 /// OpenRouter 인증 상태
 ///
@@ -60,5 +60,23 @@ final openRouterAuthProvider =
 );
 
 typedef _$OpenRouterAuth = AutoDisposeAsyncNotifier<AccountInfo?>;
+String _$openRouterCreditsHash() => r'c7badfe8e3e7bf4d3cdfd71d3d8a3d5296df3372';
+
+/// 크레딧 잔액 정보
+///
+/// Copied from [OpenRouterCredits].
+@ProviderFor(OpenRouterCredits)
+final openRouterCreditsProvider = AutoDisposeAsyncNotifierProvider<
+    OpenRouterCredits, CreditBalance?>.internal(
+  OpenRouterCredits.new,
+  name: r'openRouterCreditsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$openRouterCreditsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$OpenRouterCredits = AutoDisposeAsyncNotifier<CreditBalance?>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member

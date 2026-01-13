@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../widgets/glass_card.dart';
 
-/// Message bubble widget - iMessage style
+/// Message bubble widget - Premium iOS 26 style
 /// Actions appear above bubble, inner thoughts below (partner only)
 class MessageBubble extends StatelessWidget {
   final bool isPartner;
@@ -26,92 +27,133 @@ class MessageBubble extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.only(
-        left: isPartner ? 0 : 48,
-        right: isPartner ? 48 : 0,
+        left: isPartner ? 0 : 60,
+        right: isPartner ? 60 : 0,
       ),
       child: Column(
         crossAxisAlignment:
             isPartner ? CrossAxisAlignment.start : CrossAxisAlignment.end,
         children: [
-          // Actions - Above bubble, small italic text
+          // Actions - Contextual narration
           if (hasActions)
             Padding(
-              padding: const EdgeInsets.only(bottom: 4, left: 12, right: 12),
+              padding: const EdgeInsets.only(bottom: 6, left: 16, right: 16),
               child: Text(
-                actions!.map((a) => a).join(' '),
+                actions!.map((a) => '*$a*').join('\n'), // Multi-line actions support
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 13,
+                  height: 1.4,
                   fontStyle: FontStyle.italic,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  color: isDark ? Colors.white.withOpacity(0.6) : Colors.black.withOpacity(0.5),
+                  letterSpacing: 0.2,
                 ),
+                textAlign: isPartner ? TextAlign.left : TextAlign.right,
               ),
             ),
 
           // Dialogue Bubble
           if (hasDialogues)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: isPartner
-                    ? (isDark ? const Color(0xFF262628) : const Color(0xFFE9E9EB))
-                    : const Color(0xFF007AFF),
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(18),
-                  topRight: const Radius.circular(18),
-                  bottomLeft: Radius.circular(isPartner ? 4 : 18),
-                  bottomRight: Radius.circular(isPartner ? 18 : 4),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: dialogues!
-                    .map((dialogue) => Padding(
-                          padding: EdgeInsets.only(
-                            bottom: dialogues!.last == dialogue ? 0 : 4,
-                          ),
-                          child: Text(
-                            dialogue,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: isPartner
-                                  ? (isDark ? Colors.white : Colors.black87)
-                                  : Colors.white,
-                              height: 1.3,
-                            ),
-                          ),
-                        ))
-                    .toList(),
-              ),
-            ),
+            ...dialogues!.map((dialogue) {
+              final isLast = dialogues!.last == dialogue;
+              return Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 0 : 4),
+                child: isPartner
+                    ? _buildPartnerBubble(context, dialogue, isDark)
+                    : _buildUserBubble(context, dialogue, isDark),
+              );
+            }),
 
-          // Inner Thought - Below bubble (Partner only)
+          // Inner Thought - Hidden context
           if (isPartner && innerThought != null)
             Padding(
-              padding: const EdgeInsets.only(top: 4, left: 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '💭 ',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[500],
+              padding: const EdgeInsets.only(top: 8, left: 4),
+              child: GlassCard(
+                layer: GlassLayer.base,
+                borderRadius: 16,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.bubble_chart_outlined,
+                      size: 14,
+                      color: isDark ? Colors.purpleAccent.withOpacity(0.7) : Colors.purple.withOpacity(0.7),
                     ),
-                  ),
-                  Flexible(
-                    child: Text(
-                      innerThought!,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontStyle: FontStyle.italic,
-                        color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        innerThought!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                          color: isDark ? Colors.white.withOpacity(0.7) : Colors.black87.withOpacity(0.7),
+                          height: 1.3,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPartnerBubble(BuildContext context, String text, bool isDark) {
+    return GlassCard(
+      layer: GlassLayer.middle,
+      borderRadius: 20,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 16,
+          height: 1.4,
+          letterSpacing: 0.1,
+          color: isDark ? Colors.white.withOpacity(0.95) : Colors.black87,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserBubble(BuildContext context, String text, bool isDark) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            primaryColor,
+            primaryColor.withBlue(255).withRed(100), // Slight gradient shift
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(4),
+        ),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 16,
+          height: 1.4,
+          letterSpacing: 0.1,
+          color: Colors.white,
+          fontWeight: FontWeight.w400,
+        ),
       ),
     );
   }

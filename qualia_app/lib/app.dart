@@ -7,6 +7,7 @@ import 'config/theme.dart';
 import 'config/router.dart';
 import 'providers/settings_provider.dart';
 import 'providers/locale_provider.dart';
+import 'providers/storage_provider.dart';
 
 /// Main App Widget
 class QualiaApp extends ConsumerWidget {
@@ -14,25 +15,41 @@ class QualiaApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeModeNotifierProvider);
-    final locale = ref.watch(localeNotifierProvider);
+    final storageInit = ref.watch(storageInitializedProvider);
 
-    return MaterialApp.router(
-      title: 'Qualia',
-      debugShowCheckedModeBanner: false,
-      theme: QualiaTheme.lightTheme(),
-      darkTheme: QualiaTheme.darkTheme(),
-      themeMode: themeMode,
-      routerConfig: appRouter,
-      // Localization
-      locale: locale,
-      supportedLocales: supportedLocales,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+    return storageInit.when(
+      data: (_) {
+        final themeMode = ref.watch(themeModeNotifierProvider);
+        final locale = ref.watch(localeNotifierProvider);
+
+        return MaterialApp.router(
+          title: 'Qualia',
+          debugShowCheckedModeBanner: false,
+          theme: QualiaTheme.lightTheme(),
+          darkTheme: QualiaTheme.darkTheme(),
+          themeMode: themeMode,
+          routerConfig: appRouter,
+          // Localization
+          locale: locale,
+          supportedLocales: supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+        );
+      },
+      loading: () => const MaterialApp(
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (e, _) => MaterialApp(
+        home: Scaffold(
+          body: Center(child: Text('Error: $e')),
+        ),
+      ),
     );
   }
 }
