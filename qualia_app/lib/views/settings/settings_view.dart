@@ -1172,8 +1172,17 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     final host = _ipController.text.trim();
     final portText = _portController.text.trim();
     
-    // If port is empty and host looks like a full URL, use port 0 (will be ignored)
-    final port = portText.isEmpty ? 0 : (int.tryParse(portText) ?? 8188);
+    int port;
+    if (portText.isNotEmpty) {
+       port = int.tryParse(portText) ?? 8188;
+    } else {
+       // If empty input
+       if (_isRemoteMode) {
+          port = 0; // Not used for full URL
+       } else {
+          port = 8188; // Default for local
+       }
+    }
     
     // Update settings first
     await ref.read(comfyUIConnectionProvider.notifier).updateSettings(
