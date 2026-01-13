@@ -22,8 +22,18 @@ class ComfyUIService {
         _port = port,
         _client = client ?? http.Client();
 
-  String get _baseUrl => 'http://$_host:$_port';
-  String get _wsUrl => 'ws://$_host:$_port/ws';
+  /// Check if host is a full URL (e.g., https://abc.ngrok.io)
+  bool get _isFullUrl => _host.startsWith('http://') || _host.startsWith('https://');
+
+  String get _baseUrl => _isFullUrl ? _host : 'http://$_host:$_port';
+  String get _wsUrl {
+    if (_isFullUrl) {
+      // Convert http(s):// to ws(s)://
+      final wsHost = _host.replaceFirst('https://', 'wss://').replaceFirst('http://', 'ws://');
+      return '$wsHost/ws';
+    }
+    return 'ws://$_host:$_port/ws';
+  }
 
   /// 연결 테스트
   Future<bool> testConnection() async {

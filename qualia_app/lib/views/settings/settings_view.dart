@@ -27,6 +27,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   // OpenRouter Settings
   late TextEditingController _apiKeyController;
 
+  bool _isRemoteMode = false;
   bool _initialized = false;
 
   @override
@@ -45,8 +46,14 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     if (!storageInit.hasValue) return;
 
     final storage = ref.read(storageServiceProvider);
-    _ipController.text = storage.getComfyUIHost();
-    _portController.text = storage.getComfyUIPort().toString();
+    final host = storage.getComfyUIHost();
+    _ipController.text = host;
+    
+    // Check if it's a remote URL (starts with http/https)
+    _isRemoteMode = host.startsWith('http://') || host.startsWith('https://');
+    
+    final port = storage.getComfyUIPort();
+    _portController.text = port == 0 ? '' : port.toString();
 
     final apiKey = storage.getOpenRouterApiKey();
     if (apiKey != null) {
@@ -188,6 +195,70 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     );
   }
 
+  Widget _buildThemeOption({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? primaryColor.withAlpha(50)
+                : (isDark ? Colors.grey[850] : Colors.grey[100]),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected
+                  ? primaryColor
+                  : (isDark ? Colors.white.withAlpha(20) : Colors.grey.withAlpha(50)),
+              width: isSelected ? 2 : 1,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: primaryColor.withAlpha(40),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            children: [
+              AnimatedScale(
+                duration: const Duration(milliseconds: 150),
+                scale: isSelected ? 1.1 : 1.0,
+                child: Icon(
+                  icon,
+                  size: 24,
+                  color: isSelected ? primaryColor : Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? primaryColor : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildLanguageSection(AppLocalizations l10n) {
     final localeNotifier = ref.read(localeNotifierProvider.notifier);
     final currentLocale = ref.watch(localeNotifierProvider);
@@ -290,70 +361,6 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     );
   }
 
-  Widget _buildThemeOption({
-    required IconData icon,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = Theme.of(context).colorScheme.primary;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? primaryColor.withAlpha(50)
-                : (isDark ? Colors.grey[850] : Colors.grey[100]),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected
-                  ? primaryColor
-                  : (isDark ? Colors.white.withAlpha(20) : Colors.grey.withAlpha(50)),
-              width: isSelected ? 2 : 1,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: primaryColor.withAlpha(40),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Column(
-            children: [
-              AnimatedScale(
-                duration: const Duration(milliseconds: 150),
-                scale: isSelected ? 1.1 : 1.0,
-                child: Icon(
-                  icon,
-                  size: 24,
-                  color: isSelected ? primaryColor : Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? primaryColor : null,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildComfyUISection(AppLocalizations l10n) {
     final comfyConnection = ref.watch(comfyUIConnectionProvider);
 
@@ -361,28 +368,136 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSettingField(
-            label: l10n.ipAddress,
-            hint: l10n.ipAddressHint,
-            child: TextField(
-              controller: _ipController,
-              decoration: const InputDecoration(
-                hintText: '127.0.0.1',
-              ),
+          // Connection Mode Toggle
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.black26
+                  : Colors.grey[200],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isRemoteMode = false;
+                        // Reset to defaults if switching to Local
+                        if (_ipController.text.startsWith('http')) {
+                          _ipController.text = '127.0.0.1';
+                          _portController.text = '8188';
+                        }
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: !_isRemoteMode
+                            ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                        border: !_isRemoteMode
+                            ? Border.all(
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                                width: 1)
+                            : null,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Local',
+                          style: TextStyle(
+                            fontWeight: !_isRemoteMode ? FontWeight.bold : FontWeight.normal,
+                            color: !_isRemoteMode
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isRemoteMode = true;
+                        // Clear if it looks like an IP
+                        if (!_ipController.text.startsWith('http')) {
+                          _ipController.text = '';
+                          _portController.text = ''; // Port not needed for remote
+                        }
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _isRemoteMode
+                            ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                        border: _isRemoteMode
+                            ? Border.all(
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                                width: 1)
+                            : null,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Server (Ngrok/Cloudflare)',
+                          style: TextStyle(
+                            fontWeight: _isRemoteMode ? FontWeight.bold : FontWeight.normal,
+                            color: _isRemoteMode
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
+
+          // Connection Fields
           _buildSettingField(
-            label: l10n.port,
-            hint: l10n.portHint,
+            label: _isRemoteMode ? 'Server URL' : l10n.ipAddress,
+            hint: _isRemoteMode 
+                ? 'e.g., https://qualia.ngrok.io' 
+                : l10n.ipAddressHint,
             child: TextField(
-              controller: _portController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: '8188',
+              controller: _ipController,
+              decoration: InputDecoration(
+                hintText: _isRemoteMode ? 'https://...' : '127.0.0.1',
               ),
+              onChanged: (value) {
+                // Auto-detect mode based on input
+                if (value.startsWith('http') && !_isRemoteMode) {
+                  setState(() => _isRemoteMode = true);
+                }
+              },
             ),
           ),
+          
+          // Port field - only show in Local mode
+          if (!_isRemoteMode) ...[
+            const SizedBox(height: 16),
+            _buildSettingField(
+              label: l10n.port,
+              hint: l10n.portHint,
+              child: TextField(
+                controller: _portController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  hintText: '8188',
+                ),
+              ),
+            ),
+          ],
+          
           const SizedBox(height: 16),
           Row(
             children: [
@@ -1054,10 +1169,16 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   }
 
   Future<void> _testComfyConnection() async {
+    final host = _ipController.text.trim();
+    final portText = _portController.text.trim();
+    
+    // If port is empty and host looks like a full URL, use port 0 (will be ignored)
+    final port = portText.isEmpty ? 0 : (int.tryParse(portText) ?? 8188);
+    
     // Update settings first
     await ref.read(comfyUIConnectionProvider.notifier).updateSettings(
-      host: _ipController.text,
-      port: int.tryParse(_portController.text) ?? 8188,
+      host: host,
+      port: port,
     );
 
     // Wait a bit for the provider to rebuild with new settings
