@@ -64,9 +64,21 @@ class ComfyUIService {
       print('❌ ComfyUI Connection Error: $e');
       
       if (kIsWeb) {
-        print('⚠️ WEB ENVIRONMENT DETECTED');
-        print('If you are seeing "Failed to fetch" or "XMLHttpRequest error", it is likely a CORS issue.');
-        print('Please restart your ComfyUI server with: python main.py --enable-cors-header "*"');
+        // Check for potential Mixed Content issue
+        if (_baseUrl.startsWith('http://')) {
+          print('⚠️ WEB MIXED CONTENT ISSUE DETECTED');
+          throw ComfyUIException(
+            'Cannot connect to HTTP server from HTTPS app (Mixed Content).\n'
+            'Please use HTTPS (e.g., ngrok, cloudflare) for your ComfyUI server.',
+          );
+        }
+        
+        // CORS hint
+        print('⚠️ WEB CORS ISSUE LIKELY');
+        throw ComfyUIException(
+          'Connection failed. This is likely a CORS issue.\n'
+          'Run ComfyUI with: --enable-cors-header "*"',
+        );
       }
       
       return false;
