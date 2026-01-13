@@ -1,0 +1,10 @@
+{
+    "outputDirectory": "qualia_app/build/web",
+    "framework": null,
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}

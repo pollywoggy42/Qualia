@@ -62,6 +62,9 @@ class _PartnerEditorState extends ConsumerState<PartnerEditor>
   // Emotional State Controllers
   double _affection = 50.0;
   double _trust = 30.0;
+  double _arousal = 0.0;
+  double _lust = 0.0;
+  double _dominance = 0.0;
   late TextEditingController _moodController;
   
   // Profile image generation state
@@ -104,6 +107,9 @@ class _PartnerEditorState extends ConsumerState<PartnerEditor>
     // Emotional State
     _affection = widget.profile.emotionalState.affection.toDouble();
     _trust = widget.profile.emotionalState.trust.toDouble();
+    _arousal = widget.profile.emotionalState.arousal.toDouble();
+    _lust = widget.profile.emotionalState.lust.toDouble();
+    _dominance = widget.profile.emotionalState.dominance.toDouble();
     _moodController = TextEditingController(text: widget.profile.emotionalState.mood);
   }
 
@@ -170,6 +176,9 @@ class _PartnerEditorState extends ConsumerState<PartnerEditor>
       emotionalState: PartnerEmotionalState(
         affection: _affection.toInt(),
         trust: _trust.toInt(),
+        arousal: _arousal.toInt(),
+        lust: _lust.toInt(),
+        dominance: _dominance.toInt(),
         mood: _moodController.text,
       ),
       secret: _secretController.text.isEmpty ? null : _secretController.text,
@@ -514,6 +523,16 @@ class _PartnerEditorState extends ConsumerState<PartnerEditor>
               ),
               const SizedBox(height: 24),
               
+              // Long-term Relationship Axes
+              Text(
+                'Long-term Relationship',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              
               // Affection Slider
               Text(
                 'Affection: ${_affection.toInt()}',
@@ -558,9 +577,116 @@ class _PartnerEditorState extends ConsumerState<PartnerEditor>
                   _notifyChange();
                 },
               ),
+              const SizedBox(height: 32),
+              
+              // Immediate State Axes
+              Text(
+                'Immediate State',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Arousal Slider
+              Text(
+                'Arousal: ${_arousal.toInt()}',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Sexual excitement level',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Slider(
+                value: _arousal,
+                min: 0,
+                max: 100,
+                divisions: 100,
+                label: _arousal.toInt().toString(),
+                onChanged: (value) {
+                  setState(() {
+                    _arousal = value;
+                  });
+                  _notifyChange();
+                },
+              ),
               const SizedBox(height: 24),
               
+              // Lust Slider
+              Text(
+                'Lust: ${_lust.toInt()}',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Sexual desire level (high values may override rationality)',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Slider(
+                value: _lust,
+                min: 0,
+                max: 100,
+                divisions: 100,
+                label: _lust.toInt().toString(),
+                onChanged: (value) {
+                  setState(() {
+                    _lust = value;
+                  });
+                  _notifyChange();
+                },
+              ),
+              const SizedBox(height: 24),
+              
+              // Dominance Slider
+              Text(
+                'Dominance: ${_dominance.toInt()} (${_getDominanceLabel(_dominance.toInt())})',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'S/M tendency: Negative = Submissive, 0 = Switch, Positive = Dominant',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Slider(
+                value: _dominance,
+                min: -100,
+                max: 100,
+                divisions: 200,
+                label: '${_dominance.toInt()} (${_getDominanceLabel(_dominance.toInt())})',
+                onChanged: (value) {
+                  setState(() {
+                    _dominance = value;
+                  });
+                  _notifyChange();
+                },
+              ),
+              const SizedBox(height: 32),
+              
               // Mood TextField
+              Text(
+                'Current Mood',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
               _buildTextField(
                 controller: _moodController,
                 label: 'Mood',
@@ -574,6 +700,13 @@ class _PartnerEditorState extends ConsumerState<PartnerEditor>
       ],
     );
   }
+
+  String _getDominanceLabel(int value) {
+    if (value < -30) return 'Submissive';
+    if (value > 30) return 'Dominant';
+    return 'Switch';
+  }
+
 
   Widget _buildVisualDescriptorCard({
     required String title,
