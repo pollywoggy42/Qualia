@@ -7,6 +7,12 @@ import '../../models/comfyui_model_preset.dart';
 import '../../models/partner_profile.dart';
 import '../../providers/scenario_generator_provider.dart';
 import '../../services/agents/scenario_generator.dart';
+import 'package:uuid/uuid.dart';
+import '../../models/session.dart';
+import '../../models/user_profile.dart';
+import '../../models/world_state.dart';
+import '../../models/models.dart';
+import '../../providers/session_provider.dart';
 import '../../widgets/glass_card.dart';
 import 'widgets/preset_editor.dart';
 import 'widgets/partner_editor.dart';
@@ -615,10 +621,7 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
               Expanded(
                 flex: 2,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Create session with _customizedPreset and _generatedPartner
-                    context.go('/chat/new-session-id');
-                  },
+                  onPressed: () => _createAndStartSession(),
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Start Story'),
                   style: ElevatedButton.styleFrom(
@@ -675,6 +678,53 @@ class _NewSessionViewState extends ConsumerState<NewSessionView> {
           _currentStep = 4;
         });
       }
+    }
+  }
+
+  Future<void> _createAndStartSession() async {
+    if (_generatedPartner == null || _customizedPreset == null) return;
+
+    // 1. Create User Profile (Basic defaults for now)
+    final userProfile = UserProfile(
+      name: 'User', // TODO: Add name input
+      age: 25,
+      gender: _selectedUserGender ?? 'male',
+      occupation: 'Traveler',
+      location: 'Unknown',
+      face: const VisualDescriptor(description: 'Average face', sdxlTags: 'average face'),
+      hairstyle: const VisualDescriptor(description: 'Short hair', sdxlTags: 'short hair'),
+      body: const VisualDescriptor(description: 'Average build', sdxlTags: 'average build'),
+      accessories: const VisualDescriptor(description: 'None', sdxlTags: ''),
+      outfit: const VisualDescriptor(description: 'Casual clothes', sdxlTags: 'casual clothes'),
+      personality: const Personality(mbti: 'ISTP', speechStyle: 'Direct', traits: ['Curious']),
+    );
+
+    // 2. Create Initial World State
+    final worldState = WorldState(
+      currentTime: DateTime.now(),
+      weather: 'Clear',
+      emotionalAtmosphere: 'New Beginning',
+    );
+
+    // 3. Create Session
+    final sessionId = const Uuid().v4();
+    final session = Session(
+      id: sessionId,
+      createdAt: DateTime.now(),
+      lastActiveAt: DateTime.now(),
+      partner: _generatedPartner!,
+      user: userProfile,
+      worldState: worldState,
+      modelPreset: _customizedPreset!,
+      isNSFWEnabled: false, // Default
+    );
+
+    // 4. Save to Storage
+    await ref.read(sessionListProvider.notifier).createSession(session);
+
+    // 5. Navigate
+    if (mounted) {
+      context.go('/chat/$sessionId');
     }
   }
 }

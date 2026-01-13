@@ -118,6 +118,37 @@ class CurrentSession extends _$CurrentSession {
 
     await updateSession(updated);
   }
+
+  /// 메시지 업데이트
+  Future<void> updateMessage(ChatMessage message) async {
+    final current = state;
+    if (current == null) return;
+
+    final index = current.messages.indexWhere((m) => m.id == message.id);
+    if (index == -1) return;
+
+    final newMessages = List<ChatMessage>.from(current.messages);
+    newMessages[index] = message;
+
+    final updated = current.copyWith(
+      messages: newMessages,
+      lastActiveAt: DateTime.now(),
+    );
+
+    await updateSession(updated);
+  }
+
+  /// 선택지 목록 업데이트
+  Future<void> updateChoices(List<StrategyChoice>? choices) async {
+    final current = state;
+    if (current == null) return;
+
+    final updated = current.copyWith(
+      currentChoices: choices,
+    );
+
+    await updateSession(updated);
+  }
 }
 
 /// 세션 메시지 목록

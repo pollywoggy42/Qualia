@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../models/models.dart' hide ChatMessage;
+import '../../models/session.dart' as session;
 import '../openrouter_service.dart' show OpenRouterService, ChatMessage;
 import '../storage_service.dart';
 
@@ -10,7 +11,7 @@ class StrategistAgentInput {
   final UserProfile user;
   final WorldState worldState;
   final PartnerResponse partnerLastResponse;
-  final List<ChatMessage> history;
+  final List<session.ChatMessage> history;
 
   StrategistAgentInput({
     required this.partner,

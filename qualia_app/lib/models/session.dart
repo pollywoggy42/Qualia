@@ -4,6 +4,7 @@ import 'partner_profile.dart';
 import 'user_profile.dart';
 import 'world_state.dart';
 import 'comfyui_model_preset.dart';
+import 'strategist_response.dart';
 
 part 'session.freezed.dart';
 part 'session.g.dart';
@@ -34,6 +35,9 @@ class Session with _$Session {
 
     // Session Settings
     @Default(false) bool isNSFWEnabled,
+
+    // Persistent Choices
+    List<StrategyChoice>? currentChoices,
   }) = _Session;
 
   factory Session.fromJson(Map<String, dynamic> json) =>

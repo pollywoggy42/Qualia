@@ -215,7 +215,7 @@ class AgentSettings {
     switch (agentName) {
       case 'partner':
         return AgentSettings(
-          model: 'x-ai/grok-beta',
+          model: 'x-ai/grok-4.1-fast',
           temperature: 0.7,
           maxTokens: 2048,
           topP: 0.9,
@@ -224,7 +224,7 @@ class AgentSettings {
         );
       case 'scenario_director':
         return AgentSettings(
-          model: 'x-ai/grok-beta',
+          model: 'x-ai/grok-4.1-fast',
           temperature: 0.8,
           maxTokens: 4096,
           topP: 0.95,
@@ -233,7 +233,7 @@ class AgentSettings {
         );
       case 'visual_director':
         return AgentSettings(
-          model: 'x-ai/grok-beta',
+          model: 'x-ai/grok-4.1-fast',
           temperature: 0.5,
           maxTokens: 1024,
           topP: 0.8,
@@ -242,7 +242,7 @@ class AgentSettings {
         );
       case 'strategist':
         return AgentSettings(
-          model: 'x-ai/grok-beta',
+          model: 'x-ai/grok-4.1-fast',
           temperature: 0.7,
           maxTokens: 2048,
           topP: 0.9,
@@ -251,7 +251,7 @@ class AgentSettings {
         );
       case 'scenario_generator':
         return AgentSettings(
-          model: 'x-ai/grok-beta',
+          model: 'x-ai/grok-4.1-fast',
           temperature: 0.9,
           maxTokens: 8192,
           topP: 0.95,

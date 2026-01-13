@@ -33,7 +33,10 @@ mixin _$Session {
       throw _privateConstructorUsedError; // Generated Images
   List<GeneratedImage> get images =>
       throw _privateConstructorUsedError; // Session Settings
-  bool get isNSFWEnabled => throw _privateConstructorUsedError;
+  bool get isNSFWEnabled =>
+      throw _privateConstructorUsedError; // Persistent Choices
+  List<StrategyChoice>? get currentChoices =>
+      throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -55,7 +58,8 @@ abstract class $SessionCopyWith<$Res> {
       ComfyUIModelPreset modelPreset,
       List<ChatMessage> messages,
       List<GeneratedImage> images,
-      bool isNSFWEnabled});
+      bool isNSFWEnabled,
+      List<StrategyChoice>? currentChoices});
 
   $PartnerProfileCopyWith<$Res> get partner;
   $UserProfileCopyWith<$Res> get user;
@@ -86,6 +90,7 @@ class _$SessionCopyWithImpl<$Res, $Val extends Session>
     Object? messages = null,
     Object? images = null,
     Object? isNSFWEnabled = null,
+    Object? currentChoices = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -128,6 +133,10 @@ class _$SessionCopyWithImpl<$Res, $Val extends Session>
           ? _value.isNSFWEnabled
           : isNSFWEnabled // ignore: cast_nullable_to_non_nullable
               as bool,
+      currentChoices: freezed == currentChoices
+          ? _value.currentChoices
+          : currentChoices // ignore: cast_nullable_to_non_nullable
+              as List<StrategyChoice>?,
     ) as $Val);
   }
 
@@ -181,7 +190,8 @@ abstract class _$$SessionImplCopyWith<$Res> implements $SessionCopyWith<$Res> {
       ComfyUIModelPreset modelPreset,
       List<ChatMessage> messages,
       List<GeneratedImage> images,
-      bool isNSFWEnabled});
+      bool isNSFWEnabled,
+      List<StrategyChoice>? currentChoices});
 
   @override
   $PartnerProfileCopyWith<$Res> get partner;
@@ -214,6 +224,7 @@ class __$$SessionImplCopyWithImpl<$Res>
     Object? messages = null,
     Object? images = null,
     Object? isNSFWEnabled = null,
+    Object? currentChoices = freezed,
   }) {
     return _then(_$SessionImpl(
       id: null == id
@@ -256,6 +267,10 @@ class __$$SessionImplCopyWithImpl<$Res>
           ? _value.isNSFWEnabled
           : isNSFWEnabled // ignore: cast_nullable_to_non_nullable
               as bool,
+      currentChoices: freezed == currentChoices
+          ? _value._currentChoices
+          : currentChoices // ignore: cast_nullable_to_non_nullable
+              as List<StrategyChoice>?,
     ));
   }
 }
@@ -273,9 +288,11 @@ class _$SessionImpl implements _Session {
       required this.modelPreset,
       final List<ChatMessage> messages = const [],
       final List<GeneratedImage> images = const [],
-      this.isNSFWEnabled = false})
+      this.isNSFWEnabled = false,
+      final List<StrategyChoice>? currentChoices})
       : _messages = messages,
-        _images = images;
+        _images = images,
+        _currentChoices = currentChoices;
 
   factory _$SessionImpl.fromJson(Map<String, dynamic> json) =>
       _$$SessionImplFromJson(json);
@@ -323,10 +340,21 @@ class _$SessionImpl implements _Session {
   @override
   @JsonKey()
   final bool isNSFWEnabled;
+// Persistent Choices
+  final List<StrategyChoice>? _currentChoices;
+// Persistent Choices
+  @override
+  List<StrategyChoice>? get currentChoices {
+    final value = _currentChoices;
+    if (value == null) return null;
+    if (_currentChoices is EqualUnmodifiableListView) return _currentChoices;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
 
   @override
   String toString() {
-    return 'Session(id: $id, createdAt: $createdAt, lastActiveAt: $lastActiveAt, partner: $partner, user: $user, worldState: $worldState, modelPreset: $modelPreset, messages: $messages, images: $images, isNSFWEnabled: $isNSFWEnabled)';
+    return 'Session(id: $id, createdAt: $createdAt, lastActiveAt: $lastActiveAt, partner: $partner, user: $user, worldState: $worldState, modelPreset: $modelPreset, messages: $messages, images: $images, isNSFWEnabled: $isNSFWEnabled, currentChoices: $currentChoices)';
   }
 
   @override
@@ -348,7 +376,9 @@ class _$SessionImpl implements _Session {
             const DeepCollectionEquality().equals(other._messages, _messages) &&
             const DeepCollectionEquality().equals(other._images, _images) &&
             (identical(other.isNSFWEnabled, isNSFWEnabled) ||
-                other.isNSFWEnabled == isNSFWEnabled));
+                other.isNSFWEnabled == isNSFWEnabled) &&
+            const DeepCollectionEquality()
+                .equals(other._currentChoices, _currentChoices));
   }
 
   @JsonKey(ignore: true)
@@ -364,7 +394,8 @@ class _$SessionImpl implements _Session {
       modelPreset,
       const DeepCollectionEquality().hash(_messages),
       const DeepCollectionEquality().hash(_images),
-      isNSFWEnabled);
+      isNSFWEnabled,
+      const DeepCollectionEquality().hash(_currentChoices));
 
   @JsonKey(ignore: true)
   @override
@@ -391,7 +422,8 @@ abstract class _Session implements Session {
       required final ComfyUIModelPreset modelPreset,
       final List<ChatMessage> messages,
       final List<GeneratedImage> images,
-      final bool isNSFWEnabled}) = _$SessionImpl;
+      final bool isNSFWEnabled,
+      final List<StrategyChoice>? currentChoices}) = _$SessionImpl;
 
   factory _Session.fromJson(Map<String, dynamic> json) = _$SessionImpl.fromJson;
 
@@ -415,6 +447,8 @@ abstract class _Session implements Session {
   List<GeneratedImage> get images;
   @override // Session Settings
   bool get isNSFWEnabled;
+  @override // Persistent Choices
+  List<StrategyChoice>? get currentChoices;
   @override
   @JsonKey(ignore: true)
   _$$SessionImplCopyWith<_$SessionImpl> get copyWith =>

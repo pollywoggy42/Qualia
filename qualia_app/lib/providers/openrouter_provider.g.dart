@@ -24,7 +24,7 @@ final openRouterServiceProvider =
 );
 
 typedef OpenRouterServiceRef = AutoDisposeProviderRef<OpenRouterService?>;
-String _$availableModelsHash() => r'acae5dd5847b4b170cbe4b906096ad36b40ae0c8';
+String _$availableModelsHash() => r'db872b1491b8ec3accc108e4a500a9aff121896a';
 
 /// 사용 가능한 모델 목록
 ///

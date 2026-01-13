@@ -2,7 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/scheduler.dart';
 import '../../providers/chat_provider.dart';
+import '../../providers/session_provider.dart';
+import '../../models/models.dart';
 
 import '../../widgets/glass_card.dart';
 import '../status/status_modal.dart';
@@ -37,7 +40,23 @@ class _ChatViewState extends ConsumerState<ChatView> {
     final isProcessing = chatState.isProcessing;
     final processingStage = chatState.processingStage.index;
     final choices = chatState.currentChoices;
-    final lastImageUrl = chatState.lastImageUrl;
+    final messages = ref.watch(sessionMessagesProvider(widget.sessionId));
+    final images = ref.watch(sessionImagesProvider(widget.sessionId));
+
+    // Auto-scroll on new messages
+    ref.listen(sessionMessagesProvider(widget.sessionId), (previous, next) {
+      if (next.length > (previous?.length ?? 0)) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      }
+    });
 
     return EmotionBackground(
       sessionId: widget.sessionId,
@@ -52,55 +71,56 @@ class _ChatViewState extends ConsumerState<ChatView> {
             onPressed: () => context.go('/'),
           ),
           title: GestureDetector(
-            onTap: () => _showStatusModal(context),
-            child: Column(
-              children: [
-                // Avatar (TODO: Use Partner Profile)
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isDark ? Colors.grey[800] : Colors.grey[200],
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
-                      width: 1.5,
+              onTap: () => _showStatusModal(context),
+              child: Column(
+                children: [
+                  // Avatar
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark ? Colors.grey[800] : Colors.grey[200],
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1.5,
+                      ),
+                      // TODO: Use partner face description or a placeholder that isn't network for now if offline
+                      image: null, // Removed unstable NetworkImage
                     ),
-                    image: const DecorationImage(
-                      image: NetworkImage('https://placekitten.com/100/100'), // TODO: Real image from profile
-                      fit: BoxFit.cover,
-                    ),
+                     child: chatState.partner != null 
+                        ? Center(child: Text(chatState.partner!.name[0], style: const TextStyle(fontWeight: FontWeight.bold))) 
+                        : const Center(child: Icon(Icons.person, color: Colors.grey)),
                   ),
-                ),
-                const SizedBox(height: 4),
-                // Name & Status
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                     const Text(
-                      'Sakura', // TODO: Real name
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                  const SizedBox(height: 4),
+                  // Name & Status
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                       Text(
+                        chatState.partner?.name ?? 'Loading...',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Colors.greenAccent,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(color: Colors.greenAccent, blurRadius: 4),
-                        ],
+                      const SizedBox(width: 6),
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Colors.greenAccent,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: Colors.greenAccent, blurRadius: 4),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
           actions: [
             TextButton(
               onPressed: () {
@@ -114,44 +134,65 @@ class _ChatViewState extends ConsumerState<ChatView> {
         body: Column(
           children: [
             Expanded(
-              child: ListView(
+              child: ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                children: [
-                  // Generated Image
-                  if (lastImageUrl != null)
-                    _buildImageMessage(isDark, lastImageUrl)
-                  else
-                    // Placeholder or nothing if no image yet
-                    const SizedBox.shrink(),
-
-                  const SizedBox(height: 16),
-  
-                  // Narrator (TODO: Dynamic)
-                  const NarratorBlock(
-                    text: 'The rain begins to fall softly. Both of you start getting wet, the droplets glistening on your clothes...',
-                  ),
-                  const SizedBox(height: 16),
-  
-                  // Partner Message (TODO: Dynamic from messages list)
-                  MessageBubble(
-                    isPartner: true,
-                    partnerName: 'Sakura',
-                    actions: const ['Blushes and looks down', 'Covers her cheeks with hands'],
-                    dialogues: const ['Ah... it\'s raining...', 'You\'re getting wet too...'],
-                    innerThought: 'My heart is beating so fast...',
-                  ),
-                  const SizedBox(height: 20),
-  
-                  // User Message (previous turn)
-                  MessageBubble(
-                    isPartner: false,
-                    actions: const ['Tilts umbrella towards her'],
-                    dialogues: const ['You\'ll get soaked, come closer'],
-                  ),
-  
-                  const SizedBox(height: 100), // Space for user panel
-                ],
+                itemCount: messages.length + 1, // +1 for spacing at bottom
+                itemBuilder: (context, index) {
+                  if (index == messages.length) {
+                    return const SizedBox(height: 100); // Space for user panel
+                  }
+                  
+                  final message = messages[index];
+                  
+                  // Wrap content including image if present
+                  return Column(
+                    children: [
+                      // 1. Image (if present)
+                      if (message.imageId != null)
+                        Builder(
+                          builder: (context) {
+                             final image = images.firstWhere(
+                               (img) => img.id == message.imageId,
+                               orElse: () => GeneratedImage(id: '', url: '', prompt: '', createdAt: DateTime.now()), // Dummy
+                             );
+                             if (image.url.isNotEmpty) {
+                               return Padding(
+                                 padding: const EdgeInsets.only(bottom: 16.0),
+                                 child: _buildImageMessage(isDark, image.url),
+                               );
+                             }
+                             return const SizedBox.shrink();
+                          }
+                        ),
+                        
+                      // 2. Narrator (if present)
+                      if (message.narration != null && message.narration!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: NarratorBlock(text: message.narration!),
+                        ),
+                        
+                      // 3. Dialogue/Action Bubble
+                      // Only show if there's dialogue, action, or inner thought
+                      if ((message.dialogues != null && message.dialogues!.isNotEmpty) ||
+                          (message.actions != null && message.actions!.isNotEmpty) ||
+                          (message.innerThought != null && message.innerThought!.isNotEmpty))
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 20.0),
+                          child: MessageBubble(
+                            isPartner: message.type == MessageType.partner,
+                            partnerName: message.type == MessageType.partner 
+                                ? (chatState.partner?.name ?? 'Partner') 
+                                : 'You',
+                            actions: message.actions,
+                            dialogues: message.dialogues,
+                            innerThought: message.innerThought,
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ),
             
@@ -165,6 +206,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
                   chatNotifier.handleUserChoice(choices[index]);
                 }
               },
+              onRefresh: () => chatNotifier.refreshChoices(),
+              onDirectInputSubmitted: (text) => chatNotifier.handleDirectInput(text),
             ),
           ],
         ),
@@ -233,6 +276,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
   // Removed _simulateProcessing
 */
+
+
 
   void _showStatusModal(BuildContext context) {
     showModalBottomSheet(

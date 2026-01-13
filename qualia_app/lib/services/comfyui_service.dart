@@ -81,14 +81,25 @@ class ComfyUIService {
     );
 
     // Queue the prompt
+    final body = jsonEncode({
+      'prompt': workflow,
+      'client_id': clientId,
+    });
+    
+    print('----------------------------------------');
+    print('🚀 Sending ComfyUI Request');
+    print('URL: $_baseUrl/prompt');
+    print('Payload: $body');
+    print('----------------------------------------');
+
     final promptResponse = await _client.post(
       Uri.parse('$_baseUrl/prompt'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'prompt': workflow,
-        'client_id': clientId,
-      }),
+      body: body,
     );
+
+    print('Response Code: ${promptResponse.statusCode}');
+    print('Response Body: ${promptResponse.body}');
 
     if (promptResponse.statusCode != 200) {
       throw ComfyUIException('Failed to queue prompt: ${promptResponse.statusCode}');

@@ -42,7 +42,7 @@ final comfyUISystemStatsProvider =
 );
 
 typedef ComfyUISystemStatsRef = AutoDisposeFutureProviderRef<SystemStats?>;
-String _$comfyUIConnectionHash() => r'0c73463664b5f7f0e4dfef94c853e64722fc93ff';
+String _$comfyUIConnectionHash() => r'505ed17c2bafa940d38bb1ece020371c95d879ea';
 
 /// ComfyUI 연결 상태
 ///

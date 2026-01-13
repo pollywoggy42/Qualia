@@ -26,6 +26,9 @@ _$SessionImpl _$$SessionImplFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const [],
       isNSFWEnabled: json['isNSFWEnabled'] as bool? ?? false,
+      currentChoices: (json['currentChoices'] as List<dynamic>?)
+          ?.map((e) => StrategyChoice.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$$SessionImplToJson(_$SessionImpl instance) =>
@@ -40,6 +43,7 @@ Map<String, dynamic> _$$SessionImplToJson(_$SessionImpl instance) =>
       'messages': instance.messages,
       'images': instance.images,
       'isNSFWEnabled': instance.isNSFWEnabled,
+      'currentChoices': instance.currentChoices,
     };
 
 _$ChatMessageImpl _$$ChatMessageImplFromJson(Map<String, dynamic> json) =>
