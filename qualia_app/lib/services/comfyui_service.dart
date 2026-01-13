@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -35,12 +36,19 @@ class ComfyUIService {
     return 'ws://$_host:$_port/ws';
   }
 
+  Map<String, String> get _headers {
+    if (_host.contains('ngrok')) {
+      return {'ngrok-skip-browser-warning': 'true'};
+    }
+    return {};
+  }
+
   /// 연결 테스트
   Future<bool> testConnection() async {
     try {
       final response = await _client.get(
         Uri.parse('$_baseUrl/system_stats'),
-        headers: {'ngrok-skip-browser-warning': 'true'},
+        headers: _headers,
       ).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
@@ -54,6 +62,13 @@ class ComfyUIService {
       rethrow;
     } catch (e) {
       print('❌ ComfyUI Connection Error: $e');
+      
+      if (kIsWeb) {
+        print('⚠️ WEB ENVIRONMENT DETECTED');
+        print('If you are seeing "Failed to fetch" or "XMLHttpRequest error", it is likely a CORS issue.');
+        print('Please restart your ComfyUI server with: python main.py --enable-cors-header "*"');
+      }
+      
       return false;
     }
   }
@@ -62,7 +77,7 @@ class ComfyUIService {
   Future<SystemStats> getSystemStats() async {
     final response = await _client.get(
       Uri.parse('$_baseUrl/system_stats'),
-      headers: {'ngrok-skip-browser-warning': 'true'},
+      headers: _headers,
     );
 
     if (response.statusCode != 200) {
@@ -171,7 +186,7 @@ class ComfyUIService {
         Uri.parse('$_baseUrl/prompt'),
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
+          ..._headers,
         },
         body: body,
       );
@@ -197,7 +212,7 @@ class ComfyUIService {
       // Get the generated image
       final historyResponse = await _client.get(
         Uri.parse('$_baseUrl/history/$targetPromptId'),
-        headers: {'ngrok-skip-browser-warning': 'true'},
+        headers: _headers,
       );
 
       if (historyResponse.statusCode != 200) {
