@@ -40,6 +40,7 @@ class ComfyUIService {
     try {
       final response = await _client.get(
         Uri.parse('$_baseUrl/system_stats'),
+        headers: {'ngrok-skip-browser-warning': 'true'},
       ).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
@@ -61,6 +62,7 @@ class ComfyUIService {
   Future<SystemStats> getSystemStats() async {
     final response = await _client.get(
       Uri.parse('$_baseUrl/system_stats'),
+      headers: {'ngrok-skip-browser-warning': 'true'},
     );
 
     if (response.statusCode != 200) {
@@ -167,7 +169,10 @@ class ComfyUIService {
 
       final promptResponse = await _client.post(
         Uri.parse('$_baseUrl/prompt'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
         body: body,
       );
 
@@ -192,6 +197,7 @@ class ComfyUIService {
       // Get the generated image
       final historyResponse = await _client.get(
         Uri.parse('$_baseUrl/history/$targetPromptId'),
+        headers: {'ngrok-skip-browser-warning': 'true'},
       );
 
       if (historyResponse.statusCode != 200) {
